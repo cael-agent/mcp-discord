@@ -25,6 +25,13 @@ export const MAX_TIMEOUT_SECONDS = 3600;
 export const MAX_MENTION_AGE_MS = 48 * 60 * 60 * 1000;
 export const MAX_DISCORD_MESSAGE_LENGTH = 2000;
 export const MAX_DISCORD_FILE_SIZE_BYTES = 25 * 1024 * 1024;
+export const VALID_BUTTON_STYLES = ['primary', 'secondary', 'success', 'danger'] as const;
+export type ButtonStyleName = (typeof VALID_BUTTON_STYLES)[number];
+export type ButtonInput = {
+  id: string;
+  label: string;
+  style: ButtonStyleName;
+};
 
 export function resolveChannelId(input: string, channelMap: ChannelMap): string {
   const value = input.trim();
@@ -135,6 +142,74 @@ export function validateDiscordMessageText(rawValue: unknown, fieldName: string)
   }
 
   return rawValue;
+}
+
+export function parseOptionalTimestamp(rawValue: unknown, fieldName = 'since'): number | undefined {
+  if (rawValue === undefined || rawValue === null) {
+    return undefined;
+  }
+
+  if (typeof rawValue !== 'string') {
+    throw new Error(`${fieldName} must be an ISO 8601 timestamp string`);
+  }
+
+  const parsed = new Date(rawValue);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`${fieldName} must be a valid ISO 8601 timestamp`);
+  }
+
+  return parsed.getTime();
+}
+
+export function validateButtons(buttons: unknown): ButtonInput[] {
+  if (!Array.isArray(buttons) || buttons.length === 0) {
+    throw new Error('buttons must be a non-empty array');
+  }
+
+  if (buttons.length > 5) {
+    throw new Error('buttons must have at most 5 entries (Discord limit)');
+  }
+
+  const seenIds = new Set<string>();
+  const validated: ButtonInput[] = [];
+
+  for (const button of buttons) {
+    if (typeof button !== 'object' || button === null) {
+      throw new Error('each button must be an object with id, label, and style');
+    }
+
+    const { id, label, style } = button as Record<string, unknown>;
+
+    if (typeof id !== 'string' || id.trim() === '') {
+      throw new Error('each button must have a non-empty string id');
+    }
+
+    if (id.length > 100) {
+      throw new Error(`button id "${id.slice(0, 20)}..." exceeds 100 character limit`);
+    }
+
+    const normalizedId = id.trim();
+    if (seenIds.has(normalizedId)) {
+      throw new Error(`duplicate button id: "${normalizedId}"`);
+    }
+    seenIds.add(normalizedId);
+
+    if (typeof label !== 'string' || label.trim() === '') {
+      throw new Error('each button must have a non-empty string label');
+    }
+
+    if (label.length > 80) {
+      throw new Error(`button label "${label.slice(0, 20)}..." exceeds 80 character limit`);
+    }
+
+    if (typeof style !== 'string' || !VALID_BUTTON_STYLES.includes(style as ButtonStyleName)) {
+      throw new Error(`button style must be one of: ${VALID_BUTTON_STYLES.join(', ')}`);
+    }
+
+    validated.push({ id: normalizedId, label, style: style as ButtonStyleName });
+  }
+
+  return validated;
 }
 
 export class MentionTracker {

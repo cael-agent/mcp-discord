@@ -10,8 +10,11 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import {
+  ActionRowBuilder,
   ActivityType,
   AttachmentBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   ChannelType,
   Client,
   EmbedBuilder,
@@ -23,13 +26,16 @@ import {
 } from 'discord.js';
 
 import {
+  type ButtonStyleName,
   clampMessageLimit,
   clampTimeoutSeconds,
   MAX_DISCORD_FILE_SIZE_BYTES,
   MentionTracker,
   parseHexColor,
+  parseOptionalTimestamp,
   requireString,
   resolveChannelId,
+  validateButtons,
   validateDiscordMessageText,
   type TrackedMention,
 } from './helpers.js';
@@ -67,6 +73,27 @@ type StoredReply = {
   timestamp: number;
 };
 
+type StoredReaction = {
+  emoji: string;
+  user: string;
+  userId: string;
+  timestamp: number;
+};
+
+type PendingButtons = {
+  messageId: string;
+  channelId: string;
+  buttonIds: string[];
+  timestamp: number;
+};
+
+type StoredButtonClick = {
+  buttonId: string;
+  user: string;
+  userId: string;
+  timestamp: number;
+};
+
 type JsonRpcResponse = {
   content: Array<{ type: 'text'; text: string }>;
   isError?: boolean;
@@ -93,19 +120,31 @@ const NOTIFICATION_EMOJI: Record<'info' | 'success' | 'warning' | 'error', strin
   warning: '⚠️',
   error: '❌',
 };
+const BUTTON_STYLE_MAP: Record<ButtonStyleName, ButtonStyle> = {
+  primary: ButtonStyle.Primary,
+  secondary: ButtonStyle.Secondary,
+  success: ButtonStyle.Success,
+  danger: ButtonStyle.Danger,
+};
+const MAX_EVENT_AGE_MS = 48 * 60 * 60 * 1000;
 
 const pendingQuestions = new Map<string, PendingQuestion>();
 const replies = new Map<string, StoredReply>();
 const mentionTracker = new MentionTracker();
+const trackedReactions = new Map<string, StoredReaction[]>();
+const botMessageIds = new Set<string>();
+const pendingButtons = new Map<string, PendingButtons>();
+const buttonClicks = new Map<string, StoredButtonClick[]>();
 
 const discord = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMessageReactions,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.DirectMessages,
   ],
-  partials: [Partials.Channel],
+  partials: [Partials.Channel, Partials.Reaction, Partials.Message],
 });
 
 discord.on('messageCreate', (message) => {
@@ -140,6 +179,88 @@ discord.on('messageCreate', (message) => {
     };
 
     mentionTracker.addMention(trackedMention, message.createdTimestamp);
+  }
+});
+
+function cleanupReactions(now = Date.now()): void {
+  const cutoff = now - MAX_EVENT_AGE_MS;
+
+  for (const [messageId, reactions] of trackedReactions) {
+    const filtered = reactions.filter((reaction) => reaction.timestamp >= cutoff);
+    if (filtered.length === 0) {
+      trackedReactions.delete(messageId);
+      botMessageIds.delete(messageId);
+    } else {
+      trackedReactions.set(messageId, filtered);
+    }
+  }
+}
+
+function cleanupButtons(now = Date.now()): void {
+  const cutoff = now - MAX_EVENT_AGE_MS;
+
+  for (const [messageId, pending] of pendingButtons) {
+    if (pending.timestamp < cutoff) {
+      pendingButtons.delete(messageId);
+      buttonClicks.delete(messageId);
+    }
+  }
+}
+
+discord.on('messageReactionAdd', (reaction, user) => {
+  if (user.bot) {
+    return;
+  }
+
+  const messageId = reaction.message.id;
+  if (!botMessageIds.has(messageId)) {
+    return;
+  }
+
+  cleanupReactions();
+
+  const emoji = reaction.emoji.name ?? reaction.emoji.toString();
+  const entry: StoredReaction = {
+    emoji,
+    user: ('username' in user && user.username) ? user.username : 'unknown',
+    userId: user.id,
+    timestamp: Date.now(),
+  };
+
+  const existing = trackedReactions.get(messageId);
+  if (existing) {
+    existing.push(entry);
+  } else {
+    trackedReactions.set(messageId, [entry]);
+  }
+});
+
+discord.on('interactionCreate', (interaction) => {
+  if (!interaction.isButton()) {
+    return;
+  }
+
+  interaction.deferUpdate().catch(() => {});
+
+  cleanupButtons();
+
+  const messageId = interaction.message.id;
+  if (!pendingButtons.has(messageId)) {
+    return;
+  }
+
+  const click: StoredButtonClick = {
+    buttonId: interaction.customId,
+    user: interaction.user.username,
+    userId: interaction.user.id,
+    timestamp: Date.now(),
+  };
+
+  const existing = buttonClicks.get(messageId);
+  if (existing) {
+    existing.push(click);
+  } else {
+    buttonClicks.set(messageId, [click]);
   }
 });
 
@@ -344,6 +465,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const text = validateDiscordMessageText(args.text, 'text');
 
         const sent = await channel.send(text);
+        botMessageIds.add(sent.id);
         return toResponse({ success: true, message_id: sent.id });
       }
 
@@ -353,6 +475,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         const user = await discord.users.fetch(userId);
         const sent = await user.send(text);
+        botMessageIds.add(sent.id);
 
         return toResponse({ success: true, message_id: sent.id });
       }
@@ -377,6 +500,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
 
         const sent = await channel.send({ embeds: [embed] });
+        botMessageIds.add(sent.id);
         return toResponse({ success: true, message_id: sent.id });
       }
 
@@ -391,6 +515,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: caption,
           files: [attachment],
         });
+        botMessageIds.add(sent.id);
 
         return toResponse({ success: true, message_id: sent.id });
       }
@@ -406,6 +531,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             messageReference: messageId,
           },
         });
+        botMessageIds.add(sent.id);
 
         return toResponse({ success: true, message_id: sent.id });
       }
@@ -531,11 +657,33 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return toResponse(mentions);
       }
 
+      case 'check_reactions': {
+        const messageId = requireString(args.message_id, 'message_id');
+        const sinceTimestamp = parseOptionalTimestamp(args.since, 'since');
+
+        cleanupReactions();
+
+        const reactions = (trackedReactions.get(messageId) ?? [])
+          .filter((reaction) => sinceTimestamp === undefined || reaction.timestamp > sinceTimestamp)
+          .map((reaction) => ({
+            emoji: reaction.emoji,
+            user: reaction.user,
+            user_id: reaction.userId,
+            timestamp: reaction.timestamp,
+          }));
+
+        return toResponse({
+          message_id: messageId,
+          reactions,
+        });
+      }
+
       case 'send_question': {
         const channel = await fetchTextChannelByInput(args.channel ?? 'general');
         const question = validateDiscordMessageText(args.question, 'question');
 
         const sent = await channel.send(question);
+        botMessageIds.add(sent.id);
 
         pendingQuestions.set(sent.id, {
           messageId: sent.id,
@@ -549,6 +697,36 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           message_id: sent.id,
           hint: 'Use check_reply or wait_for_reply with this message_id',
         });
+      }
+
+      case 'send_message_with_buttons': {
+        const channel = await fetchTextChannelByInput(args.channel);
+        const text = validateDiscordMessageText(args.text, 'text');
+        const buttons = validateButtons(args.buttons);
+
+        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          buttons.map((button) =>
+            new ButtonBuilder()
+              .setCustomId(button.id)
+              .setLabel(button.label)
+              .setStyle(BUTTON_STYLE_MAP[button.style])
+          )
+        );
+
+        const sent = await channel.send({
+          content: text,
+          components: [row],
+        });
+        botMessageIds.add(sent.id);
+
+        pendingButtons.set(sent.id, {
+          messageId: sent.id,
+          channelId: channel.id,
+          buttonIds: buttons.map((button) => button.id),
+          timestamp: Date.now(),
+        });
+
+        return toResponse({ success: true, message_id: sent.id });
       }
 
       case 'check_reply': {
@@ -571,6 +749,27 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           reply: reply.reply,
           author: reply.author,
           timestamp: reply.timestamp,
+        });
+      }
+
+      case 'check_button_clicks': {
+        const messageId = requireString(args.message_id, 'message_id');
+        const sinceTimestamp = parseOptionalTimestamp(args.since, 'since');
+
+        cleanupButtons();
+
+        const clicks = (buttonClicks.get(messageId) ?? [])
+          .filter((click) => sinceTimestamp === undefined || click.timestamp > sinceTimestamp)
+          .map((click) => ({
+            button_id: click.buttonId,
+            user: click.user,
+            user_id: click.userId,
+            timestamp: click.timestamp,
+          }));
+
+        return toResponse({
+          message_id: messageId,
+          clicks,
         });
       }
 
@@ -615,7 +814,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const message = validateDiscordMessageText(args.message, 'message');
         const type = parseNotificationType(args.type);
 
-        await channel.send(`${NOTIFICATION_EMOJI[type]} ${message}`);
+        const sent = await channel.send(`${NOTIFICATION_EMOJI[type]} ${message}`);
+        botMessageIds.add(sent.id);
         return toResponse({ success: true });
       }
 

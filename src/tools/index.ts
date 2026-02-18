@@ -255,6 +255,26 @@ export const tools = [
     },
   },
   {
+    name: 'check_reactions',
+    description:
+      'Check what reactions a message has received. Returns all tracked reactions with emoji, username, and timestamp. Reactions are tracked automatically for the current session on messages sent by the bot. Non-destructive: calling this does not clear the reactions. Use the optional since parameter (ISO 8601) to only get new reactions since last check.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        message_id: {
+          type: 'string',
+          description: 'Message ID to inspect for tracked reactions.',
+        },
+        since: {
+          type: 'string',
+          description: 'Optional ISO timestamp. Only reactions after this time are returned.',
+        },
+      },
+      required: ['message_id'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'send_question',
     description:
       "Send a plain question message and track it for replies. Defaults to the 'general' channel.",
@@ -275,6 +295,52 @@ export const tools = [
     },
   },
   {
+    name: 'send_message_with_buttons',
+    description:
+      'Send a message with clickable buttons. Returns the message ID for polling with check_button_clicks. Max 5 buttons per message. Styles: primary (blue), secondary (gray), success (green), danger (red).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        channel: {
+          type: 'string',
+          description: 'Channel name or ID.',
+        },
+        text: {
+          type: 'string',
+          description: 'Message text (max 2000 characters).',
+        },
+        buttons: {
+          type: 'array',
+          minItems: 1,
+          maxItems: 5,
+          items: {
+            type: 'object',
+            properties: {
+              id: {
+                type: 'string',
+                description: 'Button custom ID (max 100 characters).',
+              },
+              label: {
+                type: 'string',
+                description: 'Button label (max 80 characters).',
+              },
+              style: {
+                type: 'string',
+                enum: ['primary', 'secondary', 'success', 'danger'],
+                description: 'Button style.',
+              },
+            },
+            required: ['id', 'label', 'style'],
+            additionalProperties: false,
+          },
+          description: 'List of button definitions.',
+        },
+      },
+      required: ['channel', 'text', 'buttons'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'check_reply',
     description: 'Check once for a reply to a tracked question message ID (non-blocking).',
     inputSchema: {
@@ -283,6 +349,26 @@ export const tools = [
         message_id: {
           type: 'string',
           description: 'Message ID returned by send_question.',
+        },
+      },
+      required: ['message_id'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'check_button_clicks',
+    description:
+      'Check which buttons have been clicked on a message sent with send_message_with_buttons. Returns all clicks with button ID, username, and timestamp. Non-destructive: calling this does not clear the clicks. Use the optional since parameter (ISO 8601) to only get new clicks since last check. Data is session-scoped.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        message_id: {
+          type: 'string',
+          description: 'Message ID returned by send_message_with_buttons.',
+        },
+        since: {
+          type: 'string',
+          description: 'Optional ISO timestamp. Only clicks after this time are returned.',
         },
       },
       required: ['message_id'],

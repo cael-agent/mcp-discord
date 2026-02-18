@@ -2,3 +2,6 @@ node_modules/
 dist/
 .env
 .env.local
+
+# MCP Agents session data
+.mcp-agents/

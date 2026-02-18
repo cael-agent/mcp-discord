@@ -5,7 +5,9 @@ import {
   clampMessageLimit,
   MentionTracker,
   parseHexColor,
+  parseOptionalTimestamp,
   resolveChannelId,
+  validateButtons,
   type TrackedMention,
 } from './helpers.js';
 
@@ -107,4 +109,119 @@ test('parseHexColor supports values with and without hash', () => {
 test('parseHexColor throws on invalid values', () => {
   assert.throws(() => parseHexColor('not-a-color'), /6-digit hex/);
   assert.throws(() => parseHexColor('#12345'), /6-digit hex/);
+});
+
+test('validateButtons accepts valid single-button input', () => {
+  const buttons = validateButtons([
+    { id: 'approve', label: 'Approve', style: 'success' },
+  ]);
+
+  assert.deepEqual(buttons, [{ id: 'approve', label: 'Approve', style: 'success' }]);
+});
+
+test('validateButtons accepts up to five buttons', () => {
+  const buttons = validateButtons([
+    { id: 'b1', label: 'One', style: 'primary' },
+    { id: 'b2', label: 'Two', style: 'secondary' },
+    { id: 'b3', label: 'Three', style: 'success' },
+    { id: 'b4', label: 'Four', style: 'danger' },
+    { id: 'b5', label: 'Five', style: 'primary' },
+  ]);
+
+  assert.equal(buttons.length, 5);
+});
+
+test('validateButtons throws on empty array', () => {
+  assert.throws(() => validateButtons([]), /non-empty array/);
+});
+
+test('validateButtons throws when more than five buttons are provided', () => {
+  assert.throws(
+    () =>
+      validateButtons([
+        { id: 'b1', label: 'One', style: 'primary' },
+        { id: 'b2', label: 'Two', style: 'primary' },
+        { id: 'b3', label: 'Three', style: 'primary' },
+        { id: 'b4', label: 'Four', style: 'primary' },
+        { id: 'b5', label: 'Five', style: 'primary' },
+        { id: 'b6', label: 'Six', style: 'primary' },
+      ]),
+    /at most 5 entries/
+  );
+});
+
+test('validateButtons throws on duplicate IDs', () => {
+  assert.throws(
+    () =>
+      validateButtons([
+        { id: 'approve', label: 'Approve', style: 'success' },
+        { id: 'approve', label: 'Deny', style: 'danger' },
+      ]),
+    /duplicate button id/
+  );
+});
+
+test('validateButtons throws on missing or empty id', () => {
+  assert.throws(
+    () => validateButtons([{ label: 'Approve', style: 'success' }] as unknown),
+    /non-empty string id/
+  );
+  assert.throws(
+    () => validateButtons([{ id: '  ', label: 'Approve', style: 'success' }]),
+    /non-empty string id/
+  );
+});
+
+test('validateButtons throws on missing or empty label', () => {
+  assert.throws(
+    () => validateButtons([{ id: 'approve', style: 'success' }] as unknown),
+    /non-empty string label/
+  );
+  assert.throws(
+    () => validateButtons([{ id: 'approve', label: ' ', style: 'success' }]),
+    /non-empty string label/
+  );
+});
+
+test('validateButtons throws when id exceeds 100 characters', () => {
+  assert.throws(
+    () =>
+      validateButtons([
+        { id: 'a'.repeat(101), label: 'Approve', style: 'success' },
+      ]),
+    /exceeds 100 character limit/
+  );
+});
+
+test('validateButtons throws when label exceeds 80 characters', () => {
+  assert.throws(
+    () =>
+      validateButtons([
+        { id: 'approve', label: 'a'.repeat(81), style: 'success' },
+      ]),
+    /exceeds 80 character limit/
+  );
+});
+
+test('validateButtons throws on invalid style', () => {
+  assert.throws(
+    () =>
+      validateButtons([
+        { id: 'approve', label: 'Approve', style: 'neutral' },
+      ]),
+    /button style must be one of/
+  );
+});
+
+test('parseOptionalTimestamp returns numeric timestamp for valid ISO string', () => {
+  const iso = '2026-02-18T12:00:00.000Z';
+  assert.equal(parseOptionalTimestamp(iso), new Date(iso).getTime());
+});
+
+test('parseOptionalTimestamp returns undefined when omitted', () => {
+  assert.equal(parseOptionalTimestamp(undefined), undefined);
+});
+
+test('parseOptionalTimestamp throws on invalid string', () => {
+  assert.throws(() => parseOptionalTimestamp('not-a-time'), /valid ISO 8601 timestamp/);
 });
