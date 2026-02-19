@@ -212,6 +212,60 @@ export function validateButtons(buttons: unknown): ButtonInput[] {
   return validated;
 }
 
+export type EmbedFieldInput = {
+  name: string;
+  value: string;
+  inline: boolean;
+};
+
+export function validateEmbedFields(rawFields: unknown): EmbedFieldInput[] | undefined {
+  if (rawFields === undefined || rawFields === null) {
+    return undefined;
+  }
+
+  if (!Array.isArray(rawFields)) {
+    throw new Error('fields must be an array');
+  }
+
+  if (rawFields.length > 25) {
+    throw new Error('fields must have at most 25 entries (Discord limit)');
+  }
+
+  const validated: EmbedFieldInput[] = [];
+
+  for (const field of rawFields) {
+    if (typeof field !== 'object' || field === null) {
+      throw new Error('each field must be an object with name and value');
+    }
+
+    const { name, value, inline } = field as Record<string, unknown>;
+
+    if (typeof name !== 'string' || name.trim() === '') {
+      throw new Error('each field must have a non-empty string name');
+    }
+
+    if (name.length > 256) {
+      throw new Error(`field name "${name.slice(0, 20)}..." exceeds 256 character limit`);
+    }
+
+    if (typeof value !== 'string' || value.trim() === '') {
+      throw new Error('each field must have a non-empty string value');
+    }
+
+    if (value.length > 1024) {
+      throw new Error(`field value for "${name.slice(0, 20)}" exceeds 1024 character limit`);
+    }
+
+    if (inline !== undefined && typeof inline !== 'boolean') {
+      throw new Error('field inline must be a boolean');
+    }
+
+    validated.push({ name, value, inline: inline === true });
+  }
+
+  return validated;
+}
+
 export class MentionTracker {
   private mentions: TrackedMention[] = [];
 

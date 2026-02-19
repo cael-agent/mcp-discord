@@ -8,6 +8,7 @@ import {
   parseOptionalTimestamp,
   resolveChannelId,
   validateButtons,
+  validateEmbedFields,
   type TrackedMention,
 } from './helpers.js';
 
@@ -210,6 +211,75 @@ test('validateButtons throws on invalid style', () => {
         { id: 'approve', label: 'Approve', style: 'neutral' },
       ]),
     /button style must be one of/
+  );
+});
+
+test('validateEmbedFields returns undefined when omitted', () => {
+  assert.equal(validateEmbedFields(undefined), undefined);
+  assert.equal(validateEmbedFields(null), undefined);
+});
+
+test('validateEmbedFields accepts valid fields', () => {
+  const result = validateEmbedFields([
+    { name: 'Status', value: 'Online' },
+    { name: 'Region', value: 'US-East', inline: true },
+  ]);
+
+  assert.deepEqual(result, [
+    { name: 'Status', value: 'Online', inline: false },
+    { name: 'Region', value: 'US-East', inline: true },
+  ]);
+});
+
+test('validateEmbedFields throws on non-array input', () => {
+  assert.throws(() => validateEmbedFields('not-an-array'), /fields must be an array/);
+});
+
+test('validateEmbedFields throws when more than 25 fields', () => {
+  const fields = Array.from({ length: 26 }, (_, i) => ({ name: `f${i}`, value: `v${i}` }));
+  assert.throws(() => validateEmbedFields(fields), /at most 25 entries/);
+});
+
+test('validateEmbedFields throws on missing or empty name', () => {
+  assert.throws(
+    () => validateEmbedFields([{ value: 'v' }] as unknown),
+    /non-empty string name/
+  );
+  assert.throws(
+    () => validateEmbedFields([{ name: '  ', value: 'v' }]),
+    /non-empty string name/
+  );
+});
+
+test('validateEmbedFields throws on missing or empty value', () => {
+  assert.throws(
+    () => validateEmbedFields([{ name: 'n' }] as unknown),
+    /non-empty string value/
+  );
+  assert.throws(
+    () => validateEmbedFields([{ name: 'n', value: ' ' }]),
+    /non-empty string value/
+  );
+});
+
+test('validateEmbedFields throws when name exceeds 256 characters', () => {
+  assert.throws(
+    () => validateEmbedFields([{ name: 'a'.repeat(257), value: 'v' }]),
+    /exceeds 256 character limit/
+  );
+});
+
+test('validateEmbedFields throws when value exceeds 1024 characters', () => {
+  assert.throws(
+    () => validateEmbedFields([{ name: 'n', value: 'a'.repeat(1025) }]),
+    /exceeds 1024 character limit/
+  );
+});
+
+test('validateEmbedFields throws when inline is not a boolean', () => {
+  assert.throws(
+    () => validateEmbedFields([{ name: 'n', value: 'v', inline: 'yes' }]),
+    /field inline must be a boolean/
   );
 });
 

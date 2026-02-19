@@ -37,6 +37,7 @@ import {
   resolveChannelId,
   validateButtons,
   validateDiscordMessageText,
+  validateEmbedFields,
   type TrackedMention,
 } from './helpers.js';
 import { tools } from './tools/index.js';
@@ -488,6 +489,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const imageUrl = parseOptionalString(args.image_url, 'image_url');
         const color = parseHexColor(args.color);
 
+        const fields = validateEmbedFields(args.fields);
+
         const embed = new EmbedBuilder().setTitle(title).setDescription(description);
         if (url) {
           embed.setURL(url);
@@ -497,6 +500,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
         if (color !== undefined) {
           embed.setColor(color);
+        }
+        if (fields) {
+          embed.addFields(fields);
         }
 
         const sent = await channel.send({ embeds: [embed] });

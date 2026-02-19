@@ -68,6 +68,20 @@ export const tools = [
           type: 'string',
           description: 'Optional hex color (for example #5865F2).',
         },
+        fields: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: 'Field name/label.' },
+              value: { type: 'string', description: 'Field value.' },
+              inline: { type: 'boolean', description: 'Display inline (side by side). Default false.' },
+            },
+            required: ['name', 'value'],
+          },
+          description: 'Optional key-value fields to display in the embed.',
+          maxItems: 25,
+        },
       },
       required: ['channel', 'title', 'description'],
       additionalProperties: false,
