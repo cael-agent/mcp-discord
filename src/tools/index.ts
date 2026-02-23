@@ -40,7 +40,7 @@ export const tools = [
   },
   {
     name: 'send_embed',
-    description: 'Send a rich embed to a Discord channel with optional URL, image, and color.',
+    description: 'Send a rich embed to a Discord channel with optional URL, image, and color. Use for informational messages (build requests, status updates). For approval requests that need James to click Approve/Deny, use send_message_with_buttons instead.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -271,7 +271,7 @@ export const tools = [
   {
     name: 'check_reactions',
     description:
-      'Check what reactions a message has received. Returns all tracked reactions with emoji, username, and timestamp. Reactions are tracked automatically for the current session on messages sent by the bot. Non-destructive: calling this does not clear the reactions. Use the optional since parameter (ISO 8601) to only get new reactions since last check.',
+      'Check what reactions a message has received. Returns all tracked reactions with emoji, username, and timestamp. Reactions are tracked automatically for the current session on messages sent by the bot. Non-destructive: calling this does not clear the reactions. Use the optional since parameter (ISO 8601) to only get new reactions since last check. Can also be used for approval: if James reacts with a checkmark emoji, that signals approval.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -311,7 +311,7 @@ export const tools = [
   {
     name: 'send_message_with_buttons',
     description:
-      'Send a message with clickable buttons. Returns the message ID for polling with check_button_clicks. Max 5 buttons per message. Styles: primary (blue), secondary (gray), success (green), danger (red).',
+      'Send a message with clickable buttons. Used for patron approval requests: send to #tool-requests with Approve (success style) and Deny (danger style) buttons, then poll with check_button_clicks. The returned message_id is used as the patron_approval_id when retrying gated tools. Max 5 buttons per message. Styles: primary (blue), secondary (gray), success (green), danger (red).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -372,7 +372,7 @@ export const tools = [
   {
     name: 'check_button_clicks',
     description:
-      'Check which buttons have been clicked on a message sent with send_message_with_buttons. Returns all clicks with button ID, username, and timestamp. Non-destructive: calling this does not clear the clicks. Use the optional since parameter (ISO 8601) to only get new clicks since last check. Data is session-scoped.',
+      'Check which buttons have been clicked on a message sent with send_message_with_buttons. Use this to check if James approved your request — look for a click on the "approve" button. Returns all clicks with button ID, username, and timestamp. Non-destructive: calling this does not clear the clicks. Use the optional since parameter (ISO 8601) to only get new clicks since last check. Data is session-scoped.',
     inputSchema: {
       type: 'object',
       properties: {
