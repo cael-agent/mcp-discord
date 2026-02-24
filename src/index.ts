@@ -414,7 +414,12 @@ function formatMessages(messages: Message[]): unknown[] {
     author_id: message.author.id,
     content: message.content,
     timestamp: message.createdAt.toISOString(),
-    attachments: [...message.attachments.values()].map((attachment) => attachment.url),
+    attachments: [...message.attachments.values()].map((attachment) => ({
+      url: attachment.url,
+      filename: attachment.name,
+      contentType: attachment.contentType ?? null,
+      size: attachment.size,
+    })),
     embeds: message.embeds
       .map((embed) => ({
         title: embed.title ?? undefined,
