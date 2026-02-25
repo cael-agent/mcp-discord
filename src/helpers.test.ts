@@ -7,6 +7,7 @@ import {
   parseHexColor,
   parseOptionalTimestamp,
   resolveChannelId,
+  splitMessage,
   validateButtons,
   validateEmbedFields,
   type TrackedMention,
@@ -294,4 +295,81 @@ test('parseOptionalTimestamp returns undefined when omitted', () => {
 
 test('parseOptionalTimestamp throws on invalid string', () => {
   assert.throws(() => parseOptionalTimestamp('not-a-time'), /valid ISO 8601 timestamp/);
+});
+
+// splitMessage tests
+
+test('splitMessage returns single-element array for short text', () => {
+  assert.deepEqual(splitMessage('hello'), ['hello']);
+});
+
+test('splitMessage returns single-element array for text exactly at limit', () => {
+  const text = 'a'.repeat(2000);
+  const parts = splitMessage(text);
+  assert.equal(parts.length, 1);
+  assert.equal(parts[0], text);
+});
+
+test('splitMessage splits at newline when available', () => {
+  const line1 = 'a'.repeat(1500);
+  const line2 = 'b'.repeat(800);
+  const text = `${line1}\n${line2}`;
+
+  const parts = splitMessage(text);
+  assert.equal(parts.length, 2);
+  assert.equal(parts[0], line1);
+  assert.equal(parts[1], line2);
+});
+
+test('splitMessage splits at space when no newline available', () => {
+  const word1 = 'a'.repeat(1500);
+  const word2 = 'b'.repeat(800);
+  const text = `${word1} ${word2}`;
+
+  const parts = splitMessage(text);
+  assert.equal(parts.length, 2);
+  assert.equal(parts[0], word1);
+  assert.equal(parts[1], ` ${word2}`);
+});
+
+test('splitMessage hard splits when no whitespace available', () => {
+  const text = 'a'.repeat(4500);
+  const parts = splitMessage(text);
+
+  assert.equal(parts.length, 3);
+  assert.equal(parts[0], 'a'.repeat(2000));
+  assert.equal(parts[1], 'a'.repeat(2000));
+  assert.equal(parts[2], 'a'.repeat(500));
+});
+
+test('splitMessage strips leading newline from remainder', () => {
+  const line1 = 'a'.repeat(1990);
+  const line2 = 'b'.repeat(10);
+  const text = `${line1}\n${line2}`;
+
+  const parts = splitMessage(text);
+  assert.equal(parts.length, 2);
+  assert.equal(parts[0], line1);
+  assert.equal(parts[1], line2); // no leading newline
+});
+
+test('splitMessage handles multiple splits across many chunks', () => {
+  // 5 lines of 500 chars each, joined by newlines = 2504 chars
+  const lines = Array.from({ length: 5 }, (_, i) => String(i).repeat(500));
+  const text = lines.join('\n');
+
+  const parts = splitMessage(text);
+  // Each part should be <= 2000 chars
+  for (const part of parts) {
+    assert.ok(part.length <= 2000, `Part exceeds limit: ${part.length}`);
+  }
+  // Recombined content should match original
+  assert.equal(parts.join('\n'), text);
+});
+
+test('splitMessage respects custom maxLength', () => {
+  const text = 'hello world foo bar';
+  const parts = splitMessage(text, 11);
+
+  assert.deepEqual(parts, ['hello world', ' foo bar']);
 });
