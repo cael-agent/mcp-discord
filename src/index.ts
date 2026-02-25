@@ -42,6 +42,7 @@ import {
   validateEmbedFields,
   type TrackedMention,
 } from './helpers.js';
+import { sanitize } from './safety-client.js';
 import { tools } from './tools/index.js';
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
@@ -88,7 +89,7 @@ type StoredButtonClick = {
   timestamp: number;
 };
 
-type JsonRpcResponse = {
+export type JsonRpcResponse = {
   content: Array<{ type: 'text'; text: string }>;
   isError?: boolean;
 };
@@ -505,6 +506,43 @@ function formatMessages(messages: Message[]): unknown[] {
   }));
 }
 
+export function formatMessagesText(messages: Array<{ author: { username: string }; content: string; createdAt: Date; attachments: Map<string, { name: string | null; contentType: string | null }> | { values(): Iterable<{ name: string | null; contentType: string | null }> } }>): string {
+  return messages
+    .map((message) => {
+      const lines = [`[${message.createdAt.toISOString()}] ${message.author.username}: ${message.content}`];
+      for (const attachment of message.attachments.values()) {
+        lines.push(`  Attachment: ${attachment.name ?? 'unknown'} (${attachment.contentType ?? 'unknown'})`);
+      }
+      return lines.join('\n');
+    })
+    .join('\n');
+}
+
+export function formatMentionsText(mentions: TrackedMention[]): string {
+  return mentions
+    .map(
+      (mention) =>
+        `[${new Date(mention.timestamp).toISOString()}] ${mention.author} in #${mention.channelName}: ${mention.content}`
+    )
+    .join('\n');
+}
+
+export async function sanitizeAndFormat(opts: {
+  content: string;
+  schema: string;
+  context: string;
+  source: string;
+}): Promise<JsonRpcResponse> {
+  const result = await sanitize(opts);
+  if (!result.ok) {
+    return {
+      content: [{ type: 'text', text: `[Safety: ${result.error}]` }],
+      isError: true,
+    };
+  }
+  return toResponse(result.data);
+}
+
 function consumeReply(messageId: string): StoredReply | undefined {
   const reply = replies.get(messageId);
   if (!reply) {
@@ -645,6 +683,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'read_channel': {
+        const channelInput = requireString(args.channel, 'channel');
         const channel = await fetchTextChannelByInput(args.channel);
         const limit = clampMessageLimit(args.limit);
 
@@ -653,7 +692,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           (left, right) => left.createdTimestamp - right.createdTimestamp
         );
 
-        return toResponse(formatMessages(messages));
+        const formatted = formatMessagesText(messages);
+        return sanitizeAndFormat({
+          content: formatted,
+          schema: 'socialFeedBatch',
+          context: `Discord messages from #${channelInput}`,
+          source: `discord:channel:${channel.id}`,
+        });
       }
 
       case 'read_dms': {
@@ -667,7 +712,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           (left, right) => left.createdTimestamp - right.createdTimestamp
         );
 
-        return toResponse(formatMessages(messages));
+        const formatted = formatMessagesText(messages);
+        return sanitizeAndFormat({
+          content: formatted,
+          schema: 'message',
+          context: `Discord DMs with user ${userId}`,
+          source: `discord:dm:${userId}`,
+        });
       }
 
       case 'react': {
@@ -762,7 +813,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
 
         const mentions = mentionTracker.getMentions(sinceRaw);
-        return toResponse(mentions);
+        if (mentions.length === 0) {
+          return toResponse([]);
+        }
+
+        const formatted = formatMentionsText(mentions);
+        return sanitizeAndFormat({
+          content: formatted,
+          schema: 'socialFeedBatch',
+          context: 'Discord mentions',
+          source: 'discord:mentions',
+        });
       }
 
       case 'check_reactions': {
