@@ -36,6 +36,7 @@ import {
   parseOptionalTimestamp,
   requireString,
   resolveChannelId,
+  splitMessage,
   validateButtons,
   validateDiscordMessageText,
   validateEmbedFields,
@@ -519,6 +520,15 @@ async function sleep(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function sendLongMessage(channel: SendableMessageChannel, text: string): Promise<Message[]> {
+  const parts = splitMessage(text);
+  const messages: Message[] = [];
+  for (const part of parts) {
+    messages.push(await channel.send(part) as Message);
+  }
+  return messages;
+}
+
 const server = new Server(
   {
     name: 'mcp-discord-cael',
@@ -545,9 +555,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const channel = await fetchTextChannelByInput(args.channel);
         const text = validateDiscordMessageText(args.text, 'text');
 
-        const sent = await channel.send(text);
-        botMessageIds.add(sent.id);
-        return toResponse({ success: true, message_id: sent.id });
+        const sentMessages = await sendLongMessage(channel, text);
+        for (const msg of sentMessages) botMessageIds.add(msg.id);
+        const lastMessage = sentMessages[sentMessages.length - 1];
+        return toResponse({ success: true, message_id: lastMessage.id });
       }
 
       case 'send_dm': {
@@ -555,10 +566,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const text = validateDiscordMessageText(args.text, 'text');
 
         const user = await discord.users.fetch(userId);
-        const sent = await user.send(text);
-        botMessageIds.add(sent.id);
+        const parts = splitMessage(text);
+        let lastMessage: Message | undefined;
+        for (const part of parts) {
+          lastMessage = await user.send(part) as Message;
+          botMessageIds.add(lastMessage.id);
+        }
 
-        return toResponse({ success: true, message_id: sent.id });
+        return toResponse({ success: true, message_id: lastMessage!.id });
       }
 
       case 'send_embed': {
@@ -611,15 +626,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const messageId = requireString(args.message_id, 'message_id');
         const text = validateDiscordMessageText(args.text, 'text');
 
-        const sent = await channel.send({
-          content: text,
+        const parts = splitMessage(text);
+        // First part is a Discord reply; remaining parts are regular follow-ups
+        const first = await channel.send({
+          content: parts[0],
           reply: {
             messageReference: messageId,
           },
         });
-        botMessageIds.add(sent.id);
+        botMessageIds.add(first.id);
 
-        return toResponse({ success: true, message_id: sent.id });
+        for (let i = 1; i < parts.length; i++) {
+          const msg = await channel.send(parts[i]) as Message;
+          botMessageIds.add(msg.id);
+        }
+
+        return toResponse({ success: true, message_id: first.id });
       }
 
       case 'read_channel': {
@@ -768,19 +790,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const channel = await fetchTextChannelByInput(args.channel ?? 'general');
         const question = validateDiscordMessageText(args.question, 'question');
 
-        const sent = await channel.send(question);
-        botMessageIds.add(sent.id);
+        const sentMessages = await sendLongMessage(channel, question);
+        const lastMessage = sentMessages[sentMessages.length - 1];
 
-        pendingQuestions.set(sent.id, {
-          messageId: sent.id,
-          channelId: channel.id,
-          timestamp: Date.now(),
-          question,
-        });
+        for (const msg of sentMessages) {
+          botMessageIds.add(msg.id);
+          pendingQuestions.set(msg.id, {
+            messageId: msg.id,
+            channelId: channel.id,
+            timestamp: Date.now(),
+            question,
+          });
+        }
 
         return toResponse({
           success: true,
-          message_id: sent.id,
+          message_id: lastMessage.id,
           hint: 'Use check_reply or wait_for_reply with this message_id',
         });
       }
@@ -908,8 +933,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const message = validateDiscordMessageText(args.message, 'message');
         const type = parseNotificationType(args.type);
 
-        const sent = await channel.send(`${NOTIFICATION_EMOJI[type]} ${message}`);
-        botMessageIds.add(sent.id);
+        const sentMessages = await sendLongMessage(channel, `${NOTIFICATION_EMOJI[type]} ${message}`);
+        for (const msg of sentMessages) botMessageIds.add(msg.id);
         return toResponse({ success: true });
       }
 

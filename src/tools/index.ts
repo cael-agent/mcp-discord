@@ -2,7 +2,7 @@ export const tools = [
   {
     name: 'send_message',
     description:
-      "Send a message to a Discord channel. Use channel names like 'cael', 'general', 'logs', or a channel ID.",
+      "Send a message to a Discord channel. Use channel names like 'cael', 'general', 'logs', or a channel ID. Long messages are automatically split across multiple Discord messages, so do not truncate your content to fit a character limit.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -12,7 +12,7 @@ export const tools = [
         },
         text: {
           type: 'string',
-          description: 'Message text (max 2000 characters).',
+          description: 'Message text. Long messages are automatically split.',
         },
       },
       required: ['channel', 'text'],
@@ -21,7 +21,7 @@ export const tools = [
   },
   {
     name: 'send_dm',
-    description: 'Send a direct message to a Discord user by user ID.',
+    description: 'Send a direct message to a Discord user by user ID. Long messages are automatically split, so do not truncate your content.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -31,7 +31,7 @@ export const tools = [
         },
         text: {
           type: 'string',
-          description: 'Message text (max 2000 characters).',
+          description: 'Message text. Long messages are automatically split.',
         },
       },
       required: ['user_id', 'text'],
@@ -112,7 +112,7 @@ export const tools = [
   },
   {
     name: 'reply',
-    description: 'Reply to a specific message in a channel.',
+    description: 'Reply to a specific message in a channel. Long messages are automatically split, so do not truncate your content.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -126,7 +126,7 @@ export const tools = [
         },
         text: {
           type: 'string',
-          description: 'Reply text (max 2000 characters).',
+          description: 'Reply text. Long messages are automatically split.',
         },
       },
       required: ['channel', 'message_id', 'text'],
@@ -291,7 +291,7 @@ export const tools = [
   {
     name: 'send_question',
     description:
-      "Send a plain question message and track it for replies. Defaults to the 'general' channel.",
+      "Send a plain question message and track it for replies. Defaults to the 'general' channel. Long messages are automatically split across multiple Discord messages, so do not truncate your content to fit a character limit.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -321,7 +321,7 @@ export const tools = [
         },
         text: {
           type: 'string',
-          description: 'Message text (max 2000 characters).',
+          description: 'Message text.',
         },
         buttons: {
           type: 'array',
@@ -411,13 +411,13 @@ export const tools = [
   {
     name: 'send_notification',
     description:
-      "Send an automated notification with a type emoji prefix. Defaults to the 'logs' channel.",
+      "Send an automated notification with a type emoji prefix. Defaults to the 'logs' channel. Long messages are automatically split, so do not truncate your content.",
     inputSchema: {
       type: 'object',
       properties: {
         message: {
           type: 'string',
-          description: 'Notification text (max 2000 characters).',
+          description: 'Notification text. Long messages are automatically split.',
         },
         type: {
           type: 'string',

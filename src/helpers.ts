@@ -137,11 +137,39 @@ export function validateDiscordMessageText(rawValue: unknown, fieldName: string)
     throw new Error(`${fieldName} must not be empty`);
   }
 
-  if (rawValue.length > MAX_DISCORD_MESSAGE_LENGTH) {
-    throw new Error(`${fieldName} exceeds Discord's ${MAX_DISCORD_MESSAGE_LENGTH} character limit`);
+  return rawValue;
+}
+
+export function splitMessage(text: string, maxLength = MAX_DISCORD_MESSAGE_LENGTH): string[] {
+  if (text.length <= maxLength) return [text];
+
+  const parts: string[] = [];
+  let remaining = text;
+
+  while (remaining.length > 0) {
+    if (remaining.length <= maxLength) {
+      parts.push(remaining);
+      break;
+    }
+
+    // Try to split at a newline
+    let splitIndex = remaining.lastIndexOf('\n', maxLength);
+
+    // If no newline found, try a space
+    if (splitIndex <= 0) {
+      splitIndex = remaining.lastIndexOf(' ', maxLength);
+    }
+
+    // If neither found, hard split at the limit
+    if (splitIndex <= 0) {
+      splitIndex = maxLength;
+    }
+
+    parts.push(remaining.slice(0, splitIndex));
+    remaining = remaining.slice(splitIndex).replace(/^\n/, '');
   }
 
-  return rawValue;
+  return parts;
 }
 
 export function parseOptionalTimestamp(rawValue: unknown, fieldName = 'since'): number | undefined {
