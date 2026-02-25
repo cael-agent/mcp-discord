@@ -2,6 +2,7 @@
 
 import { stat } from 'node:fs/promises';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -43,16 +44,7 @@ import {
 import { tools } from './tools/index.js';
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
-if (!DISCORD_TOKEN) {
-  console.error('Error: DISCORD_TOKEN environment variable is required');
-  process.exit(1);
-}
-
 const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID;
-if (!DISCORD_GUILD_ID) {
-  console.error('Error: DISCORD_GUILD_ID environment variable is required');
-  process.exit(1);
-}
 
 const CHANNEL_MAP: Record<string, string> = {
   cael: process.env.DISCORD_CHANNEL_CAEL || '1470158584552755220',
@@ -98,6 +90,17 @@ type StoredButtonClick = {
 type JsonRpcResponse = {
   content: Array<{ type: 'text'; text: string }>;
   isError?: boolean;
+};
+
+export type DiscordConnectionStatus = 'connecting' | 'connected' | 'error';
+
+export const LOGIN_TIMEOUT_MS = 30_000;
+
+export const connectionState = {
+  status: 'connecting' as DiscordConnectionStatus,
+  error: null as Error | null,
+  connectedAt: null as number | null,
+  loginStartedAt: null as number | null,
 };
 
 type SendableMessageChannel = TextBasedChannel & {
@@ -146,6 +149,68 @@ const discord = new Client({
     GatewayIntentBits.DirectMessages,
   ],
   partials: [Partials.Channel, Partials.Reaction, Partials.Message],
+});
+
+function setConnected(now = Date.now()): void {
+  connectionState.status = 'connected';
+  connectionState.connectedAt = now;
+  connectionState.error = null;
+}
+
+function setError(error: Error): void {
+  connectionState.status = 'error';
+  connectionState.error = error;
+}
+
+export function resetConnectionStateForTests(): void {
+  connectionState.status = 'connecting';
+  connectionState.error = null;
+  connectionState.connectedAt = null;
+  connectionState.loginStartedAt = null;
+}
+
+type RequireDiscordConnectionOptions = {
+  isReady?: () => boolean;
+  now?: () => number;
+};
+
+export function requireDiscordConnection(options: RequireDiscordConnectionOptions = {}): void {
+  const isReady = options.isReady ?? (() => discord.isReady());
+  const now = options.now ?? Date.now;
+
+  if (isReady()) {
+    if (connectionState.status !== 'connected') {
+      setConnected(now());
+    }
+    return;
+  }
+
+  if (connectionState.status === 'error') {
+    throw new Error(`Discord connection failed: ${connectionState.error?.message ?? 'unknown error'}. Server restart required.`);
+  }
+
+  if (connectionState.loginStartedAt !== null) {
+    const elapsed = now() - connectionState.loginStartedAt;
+    if (elapsed > LOGIN_TIMEOUT_MS) {
+      const timeoutError = new Error(`Discord login timeout after ${LOGIN_TIMEOUT_MS / 1000}s`);
+      setError(timeoutError);
+      throw new Error(`Discord connection failed: ${timeoutError.message}. Server restart required.`);
+    }
+  }
+
+  throw new Error('Discord is still connecting. Please retry in a moment.');
+}
+
+discord.once('ready', () => {
+  console.error(`Discord bot logged in as ${discord.user?.tag ?? 'unknown'}`);
+  setConnected();
+});
+
+discord.on('error', (error) => {
+  console.error('Discord client error:', error);
+  if (connectionState.status === 'connecting') {
+    setError(error instanceof Error ? error : new Error(String(error)));
+  }
 });
 
 discord.on('messageCreate', (message) => {
@@ -367,6 +432,14 @@ async function fetchTextChannelByInput(rawChannel: unknown): Promise<SendableMes
   return toSendableMessageChannel(channel);
 }
 
+function requireConfiguredGuildId(): string {
+  if (!DISCORD_GUILD_ID) {
+    throw new Error('DISCORD_GUILD_ID environment variable is required');
+  }
+
+  return DISCORD_GUILD_ID;
+}
+
 async function fetchMessageFromChannel(
   rawChannel: unknown,
   rawMessageId: unknown
@@ -465,6 +538,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const args = asRecord(request.params.arguments);
 
   try {
+    requireDiscordConnection();
+
     switch (name) {
       case 'send_message': {
         const channel = await fetchTextChannelByInput(args.channel);
@@ -621,7 +696,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'list_channels': {
-        const guild = await discord.guilds.fetch(DISCORD_GUILD_ID);
+        const guild = await discord.guilds.fetch(requireConfiguredGuildId());
         const fetchedChannels = await guild.channels.fetch();
 
         const results = [...fetchedChannels.values()]
@@ -796,6 +871,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const pollMs = 2_000;
 
         while (Date.now() - startedAt < timeoutSeconds * 1000) {
+          if (!discord.isReady()) {
+            return toResponse({
+              has_reply: false,
+              error: 'Discord connection lost during wait',
+              waited_seconds: Math.floor((Date.now() - startedAt) / 1000),
+            });
+          }
+
           if (!pendingQuestions.has(messageId)) {
             return toResponse({ error: 'Unknown message_id' });
           }
@@ -838,16 +921,55 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
-async function main(): Promise<void> {
-  await discord.login(DISCORD_TOKEN);
-  console.error(`Discord bot logged in as ${discord.user?.tag ?? 'unknown'}`);
+export type MainOptions = {
+  token?: string;
+  guildId?: string;
+  now?: () => number;
+  log?: (...args: unknown[]) => void;
+  connectMcpTransport?: () => Promise<void>;
+  startDiscordLogin?: (token: string) => Promise<unknown>;
+};
 
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error('Discord MCP server running');
+export async function main(options: MainOptions = {}): Promise<void> {
+  const token = options.token ?? DISCORD_TOKEN;
+  const guildId = options.guildId ?? DISCORD_GUILD_ID;
+  if (!token) {
+    throw new Error('DISCORD_TOKEN environment variable is required');
+  }
+
+  if (!guildId) {
+    throw new Error('DISCORD_GUILD_ID environment variable is required');
+  }
+
+  const now = options.now ?? Date.now;
+  const log = options.log ?? console.error;
+  const connectMcpTransport = options.connectMcpTransport ?? (async () => {
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+  });
+  const startDiscordLogin = options.startDiscordLogin ?? ((loginToken: string) => discord.login(loginToken));
+
+  await connectMcpTransport();
+  log('Discord MCP server ready (Discord connecting in background)');
+
+  connectionState.loginStartedAt = now();
+  void startDiscordLogin(token).catch((error) => {
+    log('Discord login failed:', error);
+    setError(error instanceof Error ? error : new Error(String(error)));
+  });
 }
 
-main().catch((error) => {
-  console.error('Fatal error:', error);
-  process.exit(1);
-});
+function isMainModule(): boolean {
+  if (!process.argv[1]) {
+    return false;
+  }
+
+  return import.meta.url === pathToFileURL(process.argv[1]).href;
+}
+
+if (isMainModule()) {
+  main().catch((error) => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+  });
+}
