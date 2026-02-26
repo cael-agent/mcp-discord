@@ -289,6 +289,45 @@ export const tools = [
     },
   },
   {
+    name: 'check_new_messages',
+    description:
+      "Check for new messages across all visible channels (or a specific channel) since the last check. Returns message summaries grouped by channel with message IDs, previews, and metadata. On first call, returns the last 25 messages per channel. Subsequent calls return only new messages. Bot's own messages are excluded. Use read_message to get full content of any message by its ID.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        channel: {
+          type: 'string',
+          description: 'Optional channel name or ID to filter. If omitted, checks all visible text channels.',
+        },
+        since: {
+          type: 'string',
+          description: 'Optional ISO 8601 timestamp override. If provided, returns messages after this time instead of using the stored highwater mark.',
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'read_message',
+    description:
+      'Read the full content of a specific Discord message by ID. Returns complete content, author, timestamp, channel, attachments, and reply/thread context. The channel parameter is optional if the message was seen in a recent check_new_messages call.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        message_id: {
+          type: 'string',
+          description: 'The Discord message ID to read.',
+        },
+        channel: {
+          type: 'string',
+          description: 'Optional channel name or ID. Required if the message was not seen in a recent check_new_messages call.',
+        },
+      },
+      required: ['message_id'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'send_question',
     description:
       "Send a plain question message and track it for replies. Defaults to the 'general' channel. Long messages are automatically split across multiple Discord messages, so do not truncate your content to fit a character limit.",

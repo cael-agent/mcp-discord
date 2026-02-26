@@ -42,6 +42,14 @@ import {
   validateEmbedFields,
   type TrackedMention,
 } from './helpers.js';
+import {
+  getChannelHighwater,
+  getDefaultStatePath,
+  loadHighwater,
+  saveHighwater,
+  updateMultipleHighwaters,
+} from './highwater.js';
+import { MessageChannelCache } from './message-cache.js';
 import { sanitize } from './safety-client.js';
 import { tools } from './tools/index.js';
 
@@ -141,6 +149,11 @@ const trackedReactions = new Map<string, StoredReaction[]>();
 const botMessageIds = new Set<string>();
 const pendingButtons = new Map<string, PendingButtons>();
 const buttonClicks = new Map<string, StoredButtonClick[]>();
+const messageChannelCache = new MessageChannelCache();
+
+const FIRST_RUN_LIMIT = 25;
+const CHECK_NEW_MESSAGES_LIMIT = 100;
+const PREVIEW_LENGTH = 150;
 
 const discord = new Client({
   intents: [
@@ -216,6 +229,8 @@ discord.on('error', (error) => {
 });
 
 discord.on('messageCreate', (message) => {
+  messageChannelCache.set(message.id, message.channelId);
+
   if (message.author.bot) {
     return;
   }
@@ -525,6 +540,13 @@ export function formatMentionsText(mentions: TrackedMention[]): string {
         `[${new Date(mention.timestamp).toISOString()}] ${mention.author} in #${mention.channelName}: ${mention.content}`
     )
     .join('\n');
+}
+
+export function formatMessagePreview(content: string, maxLength = PREVIEW_LENGTH): string {
+  if (content.length <= maxLength) {
+    return content;
+  }
+  return content.slice(0, maxLength - 3) + '...';
 }
 
 export async function sanitizeAndFormat(opts: {
@@ -844,6 +866,210 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return toResponse({
           message_id: messageId,
           reactions,
+        });
+      }
+
+      case 'check_new_messages': {
+        const guildId = requireConfiguredGuildId();
+        const guild = await discord.guilds.fetch(guildId);
+        const sinceTimestamp = parseOptionalTimestamp(args.since, 'since');
+        const statePath = getDefaultStatePath();
+        let hwState = await loadHighwater(statePath);
+
+        // Determine which channels to check
+        let channelsToCheck: Array<{ id: string; name: string }>;
+
+        if (args.channel !== undefined) {
+          const channel = await fetchTextChannelByInput(args.channel);
+          const rawChannel = channel as any;
+          const channelName = typeof rawChannel.name === 'string' ? rawChannel.name as string : channel.id;
+          channelsToCheck = [{ id: channel.id, name: channelName }];
+        } else {
+          const fetchedChannels = await guild.channels.fetch();
+          channelsToCheck = [...fetchedChannels.values()]
+            .filter((ch): ch is NonNullable<typeof ch> => ch !== null)
+            .filter((ch) => ch.isTextBased())
+            .map((ch) => {
+              const raw = ch as any;
+              return {
+                id: ch.id,
+                name: typeof raw.name === 'string' ? raw.name as string : ch.id,
+              };
+            });
+        }
+
+        type MessageSummary = {
+          message_id: string;
+          channel: { name: string; id: string };
+          author: string;
+          timestamp: string;
+          preview: string;
+          has_attachments: boolean;
+          mentions_bot: boolean;
+        };
+
+        type ChannelGroup = {
+          channel: { name: string; id: string };
+          message_count: number;
+          messages: MessageSummary[];
+        };
+
+        const groups: ChannelGroup[] = [];
+        const hwUpdates: Record<string, string> = {};
+        const botUserId = discord.user?.id;
+
+        for (const { id: channelId, name: channelName } of channelsToCheck) {
+          try {
+            const channel = await discord.channels.fetch(channelId);
+            if (!channel || !channel.isTextBased()) continue;
+            const sendable = toSendableMessageChannel(channel);
+
+            const highwater = getChannelHighwater(hwState, channelId);
+
+            let fetchOptions: { limit?: number; after?: string };
+            if (sinceTimestamp) {
+              // Convert timestamp to synthetic Discord snowflake
+              const discordEpoch = 1420070400000n;
+              const sinceSnowflake = String((BigInt(sinceTimestamp) - discordEpoch) << 22n);
+              fetchOptions = { after: sinceSnowflake, limit: CHECK_NEW_MESSAGES_LIMIT };
+            } else if (highwater) {
+              fetchOptions = { after: highwater, limit: CHECK_NEW_MESSAGES_LIMIT };
+            } else {
+              fetchOptions = { limit: FIRST_RUN_LIMIT };
+            }
+
+            const fetched = (await sendable.messages.fetch(fetchOptions)) as Map<string, Message>;
+            const messages = [...fetched.values()]
+              .filter((msg) => !botUserId || msg.author.id !== botUserId)
+              .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+
+            if (messages.length === 0) continue;
+
+            messageChannelCache.setMany(
+              messages.map((msg) => ({ messageId: msg.id, channelId })),
+            );
+
+            const newest = messages[messages.length - 1];
+            hwUpdates[channelId] = newest.id;
+
+            const summaries: MessageSummary[] = messages.map((msg) => ({
+              message_id: msg.id,
+              channel: { name: channelName, id: channelId },
+              author: msg.author.username,
+              timestamp: msg.createdAt.toISOString(),
+              preview: formatMessagePreview(msg.content),
+              has_attachments: msg.attachments.size > 0,
+              mentions_bot: !!botUserId && msg.mentions.has(botUserId),
+            }));
+
+            groups.push({
+              channel: { name: channelName, id: channelId },
+              message_count: summaries.length,
+              messages: summaries,
+            });
+          } catch {
+            // Skip channels we can't read (permissions, etc.)
+            continue;
+          }
+        }
+
+        // Update highwater marks
+        if (Object.keys(hwUpdates).length > 0) {
+          hwState = updateMultipleHighwaters(hwState, hwUpdates);
+          await saveHighwater(statePath, hwState);
+        }
+
+        if (groups.length === 0) {
+          return toResponse({ channels: [], total_new_messages: 0 });
+        }
+
+        // Build text for safety sidecar
+        const textParts: string[] = [];
+        let totalNewMessages = 0;
+        for (const group of groups) {
+          textParts.push(`#${group.channel.name} (${group.message_count} new):`);
+          totalNewMessages += group.message_count;
+          for (const msg of group.messages) {
+            textParts.push(`  [${msg.timestamp}] ${msg.author}: ${msg.preview}`);
+          }
+        }
+        const formatted = textParts.join('\n');
+
+        return sanitizeAndFormat({
+          content: formatted,
+          schema: 'socialFeedBatch',
+          context: `New Discord messages across ${groups.length} channel(s)`,
+          source: 'discord:check_new_messages',
+        });
+      }
+
+      case 'read_message': {
+        const messageId = requireString(args.message_id, 'message_id');
+
+        // Resolve channel: explicit param > cache > error
+        let channelId: string | undefined;
+
+        if (args.channel !== undefined) {
+          const channelInput = requireString(args.channel, 'channel');
+          channelId = resolveChannelId(channelInput, CHANNEL_MAP);
+        } else {
+          channelId = messageChannelCache.get(messageId);
+        }
+
+        if (!channelId) {
+          throw new Error(
+            'Could not determine which channel contains this message. ' +
+            'Either provide the channel parameter, or call check_new_messages first ' +
+            'so the message-to-channel mapping is cached.',
+          );
+        }
+
+        const channel = await discord.channels.fetch(channelId);
+        if (!channel || !channel.isTextBased()) {
+          throw new Error(`Channel ${channelId} is not a readable text channel`);
+        }
+
+        const sendable = toSendableMessageChannel(channel);
+        const message = (await sendable.messages.fetch(messageId)) as Message;
+        if (!message) {
+          throw new Error(`Message not found: ${messageId}`);
+        }
+
+        const rawChannel = channel as any;
+        const channelName = typeof rawChannel.name === 'string' ? rawChannel.name as string : channelId;
+
+        // Build reply context if this message is a reply
+        let replyContext: { message_id: string; author?: string; preview?: string } | undefined;
+        if (message.reference?.messageId) {
+          try {
+            const refMessage = (await sendable.messages.fetch(message.reference.messageId)) as Message;
+            replyContext = {
+              message_id: refMessage.id,
+              author: refMessage.author.username,
+              preview: formatMessagePreview(refMessage.content),
+            };
+          } catch {
+            // Referenced message may be deleted
+            replyContext = { message_id: message.reference.messageId };
+          }
+        }
+
+        // Format as text for safety sidecar
+        const lines = [
+          `[${message.createdAt.toISOString()}] ${message.author.username} in #${channelName}: ${message.content}`,
+        ];
+        for (const att of message.attachments.values()) {
+          lines.push(`  Attachment: ${att.name ?? 'unknown'} (${att.contentType ?? 'unknown'})`);
+        }
+        if (replyContext) {
+          lines.push(`  Reply to: ${replyContext.author ?? 'unknown'}: ${replyContext.preview ?? '(unavailable)'}`);
+        }
+
+        return sanitizeAndFormat({
+          content: lines.join('\n'),
+          schema: 'message',
+          context: `Discord message ${messageId} from #${channelName}`,
+          source: `discord:message:${channelId}:${messageId}`,
         });
       }
 

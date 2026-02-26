@@ -5,3 +5,6 @@ dist/
 
 # MCP Agents session data
 .mcp-agents/
+
+# Runtime state
+data/
