@@ -885,10 +885,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           const channelName = typeof rawChannel.name === 'string' ? rawChannel.name as string : channel.id;
           channelsToCheck = [{ id: channel.id, name: channelName }];
         } else {
+          const logsChannelId = CHANNEL_MAP.logs;
           const fetchedChannels = await guild.channels.fetch();
           channelsToCheck = [...fetchedChannels.values()]
             .filter((ch): ch is NonNullable<typeof ch> => ch !== null)
             .filter((ch) => ch.isTextBased())
+            .filter((ch) => ch.id !== logsChannelId)
             .map((ch) => {
               const raw = ch as any;
               return {
@@ -906,6 +908,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           preview: string;
           has_attachments: boolean;
           mentions_bot: boolean;
+          is_self: boolean;
         };
 
         type ChannelGroup = {
@@ -940,7 +943,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
             const fetched = (await sendable.messages.fetch(fetchOptions)) as Map<string, Message>;
             const messages = [...fetched.values()]
-              .filter((msg) => !botUserId || msg.author.id !== botUserId)
               .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
 
             if (messages.length === 0) continue;
@@ -960,6 +962,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               preview: formatMessagePreview(msg.content),
               has_attachments: msg.attachments.size > 0,
               mentions_bot: !!botUserId && msg.mentions.has(botUserId),
+              is_self: !!botUserId && msg.author.id === botUserId,
             }));
 
             groups.push({
@@ -990,7 +993,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           textParts.push(`#${group.channel.name} (${group.message_count} new):`);
           totalNewMessages += group.message_count;
           for (const msg of group.messages) {
-            textParts.push(`  [${msg.timestamp}] ${msg.author}: ${msg.preview}`);
+            const selfTag = msg.is_self ? ' (you)' : '';
+            textParts.push(`  [${msg.timestamp}] ${msg.author}${selfTag}: ${msg.preview}`);
           }
         }
         const formatted = textParts.join('\n');

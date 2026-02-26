@@ -291,7 +291,7 @@ export const tools = [
   {
     name: 'check_new_messages',
     description:
-      "Check for new messages across all visible channels (or a specific channel) since the last check. Returns message summaries grouped by channel with message IDs, previews, and metadata. On first call, returns the last 25 messages per channel. Subsequent calls return only new messages. Bot's own messages are excluded. Use read_message to get full content of any message by its ID.",
+      "Check for new messages across all visible channels (or a specific channel) since the last check. Returns message summaries grouped by channel with message IDs, previews, and metadata. On first call, returns the last 25 messages per channel. Subsequent calls return only new messages. Your own messages are included and marked with is_self: true so you can re-read them. Use read_message to get full content of any message by its ID.",
     inputSchema: {
       type: 'object',
       properties: {
