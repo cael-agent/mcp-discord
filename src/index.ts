@@ -50,6 +50,7 @@ import {
   updateMultipleHighwaters,
 } from './highwater.js';
 import { MessageChannelCache } from './message-cache.js';
+import { formatRelativeTime } from './relative-time.js';
 import { sanitize } from './safety-client.js';
 import { tools } from './tools/index.js';
 
@@ -524,7 +525,7 @@ function formatMessages(messages: Message[]): unknown[] {
 export function formatMessagesText(messages: Array<{ author: { username: string }; content: string; createdAt: Date; attachments: Map<string, { name: string | null; contentType: string | null }> | { values(): Iterable<{ name: string | null; contentType: string | null }> } }>): string {
   return messages
     .map((message) => {
-      const lines = [`[${message.createdAt.toISOString()}] ${message.author.username}: ${message.content}`];
+      const lines = [`[${formatRelativeTime(message.createdAt)}] ${message.author.username}: ${message.content}`];
       for (const attachment of message.attachments.values()) {
         lines.push(`  Attachment: ${attachment.name ?? 'unknown'} (${attachment.contentType ?? 'unknown'})`);
       }
@@ -537,7 +538,7 @@ export function formatMentionsText(mentions: TrackedMention[]): string {
   return mentions
     .map(
       (mention) =>
-        `[${new Date(mention.timestamp).toISOString()}] ${mention.author} in #${mention.channelName}: ${mention.content}`
+        `[${formatRelativeTime(new Date(mention.timestamp))}] ${mention.author} in #${mention.channelName}: ${mention.content}`
     )
     .join('\n');
 }
@@ -994,7 +995,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           totalNewMessages += group.message_count;
           for (const msg of group.messages) {
             const selfTag = msg.is_self ? ' (you)' : '';
-            textParts.push(`  [${msg.timestamp}] ${msg.author}${selfTag}: ${msg.preview}`);
+            textParts.push(`  [${formatRelativeTime(msg.timestamp)}] ${msg.author}${selfTag}: ${msg.preview}`);
           }
         }
         const formatted = textParts.join('\n');
@@ -1060,7 +1061,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         // Format as text for safety sidecar
         const lines = [
-          `[${message.createdAt.toISOString()}] ${message.author.username} in #${channelName}: ${message.content}`,
+          `[${formatRelativeTime(message.createdAt)}] ${message.author.username} in #${channelName}: ${message.content}`,
         ];
         for (const att of message.attachments.values()) {
           lines.push(`  Attachment: ${att.name ?? 'unknown'} (${att.contentType ?? 'unknown'})`);

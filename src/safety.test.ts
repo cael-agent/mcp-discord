@@ -16,6 +16,14 @@ function setMockFetch(
   });
 }
 
+function freezeNow(t: TestContext): void {
+  t.mock.timers.enable({
+    apis: ['Date'],
+    now: new Date('2026-02-27T12:00:00.000Z'),
+  });
+  t.after(() => t.mock.timers.reset());
+}
+
 test('sanitize() sends correct request to /sanitize endpoint', async (t) => {
   let capturedUrl: string | undefined;
   let capturedBody: unknown;
@@ -100,7 +108,9 @@ test('sanitize() returns error when sidecar is unreachable', async (t) => {
   });
 });
 
-test('formatMessagesText() formats messages correctly', () => {
+test('formatMessagesText() formats messages correctly', (t) => {
+  freezeNow(t);
+
   const messages = [
     {
       author: { username: 'alice' },
@@ -120,7 +130,7 @@ test('formatMessagesText() formats messages correctly', () => {
 
   assert.equal(
     output,
-    '[2026-02-25T10:00:00.000Z] alice: Hello everyone\n[2026-02-25T10:01:00.000Z] bob: Hey alice! Check this out'
+    '[2d ago] alice: Hello everyone\n[2d ago] bob: Hey alice! Check this out'
   );
 });
 
@@ -128,7 +138,9 @@ test('formatMessagesText() returns empty string for empty array', () => {
   assert.equal(formatMessagesText([]), '');
 });
 
-test('formatMessagesText() includes attachment info', () => {
+test('formatMessagesText() includes attachment info', (t) => {
+  freezeNow(t);
+
   const messages = [
     {
       author: { username: 'bob' },
@@ -144,11 +156,13 @@ test('formatMessagesText() includes attachment info', () => {
 
   assert.equal(
     output,
-    '[2026-02-25T10:01:00.000Z] bob: Check this image\n  Attachment: image.png (image/png)'
+    '[2d ago] bob: Check this image\n  Attachment: image.png (image/png)'
   );
 });
 
-test('formatMentionsText() formats mentions correctly', () => {
+test('formatMentionsText() formats mentions correctly', (t) => {
+  freezeNow(t);
+
   const mentions: TrackedMention[] = [
     {
       messageId: '1',
@@ -172,7 +186,7 @@ test('formatMentionsText() formats mentions correctly', () => {
 
   assert.equal(
     output,
-    '[2026-02-25T10:00:00.000Z] alice in #general: Hey bot\n[2026-02-25T10:01:00.000Z] bob in #cael: Need help'
+    '[2d ago] alice in #general: Hey bot\n[2d ago] bob in #cael: Need help'
   );
 });
 
