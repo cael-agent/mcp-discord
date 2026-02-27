@@ -17,7 +17,7 @@
  */
 
 const SIDECAR_URL = process.env.SAFETY_SIDECAR_URL ?? 'http://safety-sidecar:3100'
-const TIMEOUT_MS = 60_000
+const TIMEOUT_MS = Number(process.env.SAFETY_TIMEOUT_MS) || 180_000
 
 type SanitizeRequest = {
   content: string
