@@ -517,7 +517,7 @@ export function formatMessagesText(messages: Array<{
 }>): string {
   return messages
     .map((message) => {
-      const lines = [`[${formatRelativeTime(message.createdAt)}] [id:${message.id}] ${message.author.username}: ${message.content}`];
+      const lines = [`[${formatRelativeTime(message.createdAt)}] [id:${message.id}] ${message.author.username}: ${formatMessagePreview(message.content)}`];
       for (const attachment of message.attachments.values()) {
         const sizeStr = attachment.size != null ? `, ${formatFileSize(attachment.size)}` : '';
         lines.push(`  Attachment: ${attachment.name ?? 'unknown'} (${attachment.contentType ?? 'unknown'}${sizeStr})`);
