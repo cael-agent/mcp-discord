@@ -16,6 +16,7 @@ import {
 const CHANNEL_MAP = {
   cael: '111111111111111111',
   general: '222222222222222222',
+  'general-cael': '222222222222222222',
   'tool-requests': '333333333333333333',
   logs: '444444444444444444',
 };
@@ -42,8 +43,15 @@ test('resolveChannelId passes through snowflake IDs', () => {
   assert.equal(resolveChannelId(snowflake, CHANNEL_MAP), snowflake);
 });
 
+test('resolveChannelId resolves general-cael alias', () => {
+  assert.equal(resolveChannelId('general-cael', CHANNEL_MAP), CHANNEL_MAP.general);
+});
+
 test('resolveChannelId throws for unknown names with available list', () => {
-  assert.throws(() => resolveChannelId('unknown-room', CHANNEL_MAP), /Available channels: cael, general, logs, tool-requests/);
+  assert.throws(
+    () => resolveChannelId('unknown-room', CHANNEL_MAP),
+    /Available channels: cael, general, general-cael, logs, tool-requests/
+  );
 });
 
 test('resolveChannelId throws for empty string', () => {

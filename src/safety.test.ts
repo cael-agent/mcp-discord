@@ -113,12 +113,14 @@ test('formatMessagesText() formats messages correctly', (t) => {
 
   const messages = [
     {
+      id: '1',
       author: { username: 'alice' },
       content: 'Hello everyone',
       createdAt: new Date('2026-02-25T10:00:00.000Z'),
       attachments: new Map<string, { name: string | null; contentType: string | null; size?: number }>(),
     },
     {
+      id: '2',
       author: { username: 'bob' },
       content: 'Hey alice! Check this out',
       createdAt: new Date('2026-02-25T10:01:00.000Z'),
@@ -130,7 +132,7 @@ test('formatMessagesText() formats messages correctly', (t) => {
 
   assert.equal(
     output,
-    '[2d ago] alice: Hello everyone\n[2d ago] bob: Hey alice! Check this out'
+    '[2d ago] [id:1] alice: Hello everyone\n[2d ago] [id:2] bob: Hey alice! Check this out'
   );
 });
 
@@ -143,6 +145,7 @@ test('formatMessagesText() includes attachment info', (t) => {
 
   const messages = [
     {
+      id: '2',
       author: { username: 'bob' },
       content: 'Check this image',
       createdAt: new Date('2026-02-25T10:01:00.000Z'),
@@ -156,7 +159,7 @@ test('formatMessagesText() includes attachment info', (t) => {
 
   assert.equal(
     output,
-    '[2d ago] bob: Check this image\n  Attachment: image.png (image/png, 12.1 KB)'
+    '[2d ago] [id:2] bob: Check this image\n  Attachment: image.png (image/png, 12.1 KB)'
   );
 });
 

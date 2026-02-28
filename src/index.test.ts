@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   LOGIN_TIMEOUT_MS,
   connectionState,
+  formatMessagesText,
   main,
   requireDiscordConnection,
   resetConnectionStateForTests,
@@ -94,4 +95,20 @@ test('main sets up MCP transport before starting Discord login', async () => {
 
   assert.deepEqual(calls, ['connect', 'login']);
   assert.equal(connectionState.loginStartedAt, 2_000);
+});
+
+test('formatMessagesText includes message IDs in output', () => {
+  const messages = [
+    {
+      id: '123456789012345678',
+      author: { username: 'alice' },
+      content: 'hello world',
+      createdAt: new Date('2026-02-28T12:00:00Z'),
+      attachments: new Map<string, { name: string | null; contentType: string | null; size?: number }>(),
+    },
+  ];
+
+  const output = formatMessagesText(messages);
+  assert.ok(output.includes('[id:123456789012345678]'), 'output should contain message ID');
+  assert.ok(output.includes('alice: hello world'), 'output should contain author and content');
 });

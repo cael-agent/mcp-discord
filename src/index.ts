@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { stat } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -65,10 +66,11 @@ const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID;
 const CHANNEL_MAP: Record<string, string> = {
   cael: process.env.DISCORD_CHANNEL_CAEL || '1470158584552755220',
   general: process.env.DISCORD_CHANNEL_GENERAL || '1471816633944244379',
+  'general-cael': process.env.DISCORD_CHANNEL_GENERAL || '1471816633944244379',
   'tool-requests': process.env.DISCORD_CHANNEL_TOOL_REQUESTS || '1471816682527002686',
   logs: process.env.DISCORD_CHANNEL_LOGS || '1471816703834063023',
 };
-const ATTACHMENTS_DIR = process.env.ATTACHMENTS_DIR ?? '/app/data/attachments';
+const ATTACHMENTS_DIR = process.env.ATTACHMENTS_DIR ?? path.join(tmpdir(), 'mcp-discord-cael', 'attachments');
 
 type PendingQuestion = {
   messageId: string;
@@ -504,31 +506,8 @@ async function parseAndValidateImagePath(rawImagePath: unknown): Promise<string>
   return imagePath;
 }
 
-function formatMessages(messages: Message[]): unknown[] {
-  return messages.map((message) => ({
-    message_id: message.id,
-    author: message.author.username,
-    author_id: message.author.id,
-    content: message.content,
-    timestamp: message.createdAt.toISOString(),
-    attachments: [...message.attachments.values()].map((attachment) => ({
-      url: attachment.url,
-      filename: attachment.name,
-      contentType: attachment.contentType ?? null,
-      size: attachment.size,
-    })),
-    embeds: message.embeds
-      .map((embed) => ({
-        title: embed.title ?? undefined,
-        description: embed.description ?? undefined,
-        url: embed.url ?? undefined,
-      }))
-      .filter((embed) => embed.title || embed.description || embed.url),
-    is_reply_to: message.reference?.messageId ?? undefined,
-  }));
-}
-
 export function formatMessagesText(messages: Array<{
+  id: string;
   author: { username: string };
   content: string;
   createdAt: Date;
@@ -538,7 +517,7 @@ export function formatMessagesText(messages: Array<{
 }>): string {
   return messages
     .map((message) => {
-      const lines = [`[${formatRelativeTime(message.createdAt)}] ${message.author.username}: ${message.content}`];
+      const lines = [`[${formatRelativeTime(message.createdAt)}] [id:${message.id}] ${message.author.username}: ${message.content}`];
       for (const attachment of message.attachments.values()) {
         const sizeStr = attachment.size != null ? `, ${formatFileSize(attachment.size)}` : '';
         lines.push(`  Attachment: ${attachment.name ?? 'unknown'} (${attachment.contentType ?? 'unknown'}${sizeStr})`);
@@ -1013,7 +992,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           totalNewMessages += group.message_count;
           for (const msg of group.messages) {
             const selfTag = msg.is_self ? ' (you)' : '';
-            textParts.push(`  [${formatRelativeTime(msg.timestamp)}] ${msg.author}${selfTag}: ${msg.preview}`);
+            textParts.push(`  [${formatRelativeTime(msg.timestamp)}] [id:${msg.message_id}] ${msg.author}${selfTag}: ${msg.preview}`);
             for (const att of msg.attachments) {
               textParts.push(`    Attachment: ${att.filename} (${att.contentType}, ${formatFileSize(att.size)})`);
             }

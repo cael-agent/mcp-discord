@@ -85,6 +85,7 @@ All via environment variables. The MCP server reads from `process.env` (the call
 | `DISCORD_CHANNEL_GENERAL` | No | `1471816633944244379` | #general-cael channel |
 | `DISCORD_CHANNEL_TOOL_REQUESTS` | No | `1471816682527002686` | #tool-requests channel |
 | `DISCORD_CHANNEL_LOGS` | No | `1471816703834063023` | #logs channel |
+| `ATTACHMENTS_DIR` | No | OS temp dir | Directory for downloaded attachments |
 
 ### .env.example
 
