@@ -328,6 +328,26 @@ export const tools = [
     },
   },
   {
+    name: 'download_attachment',
+    description:
+      'Download attachments from a Discord message to local storage. Text files (.md, .txt, .json, etc.) are returned inline so you can read them immediately. Use this when you see attachments in read_message output that you want to access.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        message_id: {
+          type: 'string',
+          description: 'The Discord message ID containing the attachment(s).',
+        },
+        channel: {
+          type: 'string',
+          description: 'Optional channel name or ID. Required if the message was not seen in a recent check_new_messages call.',
+        },
+      },
+      required: ['message_id'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'send_question',
     description:
       "Send a plain question message and track it for replies. Defaults to the 'general' channel. Long messages are automatically split across multiple Discord messages, so do not truncate your content to fit a character limit.",

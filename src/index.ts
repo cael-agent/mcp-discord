@@ -43,6 +43,11 @@ import {
   type TrackedMention,
 } from './helpers.js';
 import {
+  downloadAttachments,
+  formatFileSize,
+  type DownloadResult,
+} from './attachments.js';
+import {
   getChannelHighwater,
   getDefaultStatePath,
   loadHighwater,
@@ -63,6 +68,7 @@ const CHANNEL_MAP: Record<string, string> = {
   'tool-requests': process.env.DISCORD_CHANNEL_TOOL_REQUESTS || '1471816682527002686',
   logs: process.env.DISCORD_CHANNEL_LOGS || '1471816703834063023',
 };
+const ATTACHMENTS_DIR = process.env.ATTACHMENTS_DIR ?? '/app/data/attachments';
 
 type PendingQuestion = {
   messageId: string;
@@ -522,12 +528,20 @@ function formatMessages(messages: Message[]): unknown[] {
   }));
 }
 
-export function formatMessagesText(messages: Array<{ author: { username: string }; content: string; createdAt: Date; attachments: Map<string, { name: string | null; contentType: string | null }> | { values(): Iterable<{ name: string | null; contentType: string | null }> } }>): string {
+export function formatMessagesText(messages: Array<{
+  author: { username: string };
+  content: string;
+  createdAt: Date;
+  attachments:
+  | Map<string, { name: string | null; contentType: string | null; size?: number }>
+  | { values(): Iterable<{ name: string | null; contentType: string | null; size?: number }> };
+}>): string {
   return messages
     .map((message) => {
       const lines = [`[${formatRelativeTime(message.createdAt)}] ${message.author.username}: ${message.content}`];
       for (const attachment of message.attachments.values()) {
-        lines.push(`  Attachment: ${attachment.name ?? 'unknown'} (${attachment.contentType ?? 'unknown'})`);
+        const sizeStr = attachment.size != null ? `, ${formatFileSize(attachment.size)}` : '';
+        lines.push(`  Attachment: ${attachment.name ?? 'unknown'} (${attachment.contentType ?? 'unknown'}${sizeStr})`);
       }
       return lines.join('\n');
     })
@@ -907,7 +921,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           author: string;
           timestamp: string;
           preview: string;
-          has_attachments: boolean;
+          attachments: Array<{ filename: string; contentType: string; size: number }>;
           mentions_bot: boolean;
           is_self: boolean;
         };
@@ -961,7 +975,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               author: msg.author.username,
               timestamp: msg.createdAt.toISOString(),
               preview: formatMessagePreview(msg.content),
-              has_attachments: msg.attachments.size > 0,
+              attachments: [...msg.attachments.values()].map((att) => ({
+                filename: att.name ?? 'unknown',
+                contentType: att.contentType ?? 'unknown',
+                size: att.size,
+              })),
               mentions_bot: !!botUserId && msg.mentions.has(botUserId),
               is_self: !!botUserId && msg.author.id === botUserId,
             }));
@@ -996,6 +1014,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           for (const msg of group.messages) {
             const selfTag = msg.is_self ? ' (you)' : '';
             textParts.push(`  [${formatRelativeTime(msg.timestamp)}] ${msg.author}${selfTag}: ${msg.preview}`);
+            for (const att of msg.attachments) {
+              textParts.push(`    Attachment: ${att.filename} (${att.contentType}, ${formatFileSize(att.size)})`);
+            }
           }
         }
         const formatted = textParts.join('\n');
@@ -1064,7 +1085,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           `[${formatRelativeTime(message.createdAt)}] ${message.author.username} in #${channelName}: ${message.content}`,
         ];
         for (const att of message.attachments.values()) {
-          lines.push(`  Attachment: ${att.name ?? 'unknown'} (${att.contentType ?? 'unknown'})`);
+          const sizeStr = formatFileSize(att.size);
+          lines.push(`  Attachment: ${att.name ?? 'unknown'} (${att.contentType ?? 'unknown'}, ${sizeStr})`);
+          lines.push(`    URL: ${att.url}`);
+          lines.push('    Use download_attachment to save and read this file.');
         }
         if (replyContext) {
           lines.push(`  Reply to: ${replyContext.author ?? 'unknown'}: ${replyContext.preview ?? '(unavailable)'}`);
@@ -1075,6 +1099,78 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           schema: 'message',
           context: `Discord message ${messageId} from #${channelName}`,
           source: `discord:message:${channelId}:${messageId}`,
+        });
+      }
+
+      case 'download_attachment': {
+        const messageId = requireString(args.message_id, 'message_id');
+
+        // Resolve channel (same pattern as read_message)
+        let channelId: string | undefined;
+        if (args.channel !== undefined) {
+          channelId = resolveChannelId(requireString(args.channel, 'channel'), CHANNEL_MAP);
+        } else {
+          channelId = messageChannelCache.get(messageId);
+        }
+
+        if (!channelId) {
+          throw new Error(
+            'Could not determine which channel contains this message. ' +
+            'Either provide the channel parameter, or call check_new_messages first ' +
+            'so the message-to-channel mapping is cached.',
+          );
+        }
+
+        const channel = await discord.channels.fetch(channelId);
+        if (!channel || !channel.isTextBased()) {
+          throw new Error(`Channel ${channelId} is not a readable text channel`);
+        }
+
+        const sendable = toSendableMessageChannel(channel);
+        const message = (await sendable.messages.fetch(messageId)) as Message;
+        if (!message) {
+          throw new Error(`Message not found: ${messageId}`);
+        }
+
+        if (message.attachments.size === 0) {
+          return toResponse({ message_id: messageId, attachments: [], note: 'This message has no attachments.' });
+        }
+
+        const attachmentsList = [...message.attachments.values()].map((att) => ({
+          url: att.url,
+          filename: att.name ?? 'unnamed',
+          contentType: att.contentType ?? 'application/octet-stream',
+          size: att.size,
+        }));
+
+        const results: DownloadResult[] = await downloadAttachments({
+          messageId,
+          attachments: attachmentsList,
+          attachmentsDir: ATTACHMENTS_DIR,
+        });
+
+        // Build text summary for safety sidecar
+        const lines: string[] = [`Attachments for message ${messageId}:`];
+
+        for (const result of results) {
+          if (result.downloaded) {
+            lines.push(`  ${result.filename} (${formatFileSize(result.size)}) -> saved to ${result.localPath}`);
+            if (result.textContent) {
+              lines.push(`  --- Content of ${result.filename} ---`);
+              lines.push(result.textContent);
+              lines.push(`  --- End of ${result.filename} ---`);
+            }
+          } else {
+            lines.push(`  ${result.filename} (${formatFileSize(result.size)}) - skipped: ${result.reason}`);
+          }
+        }
+
+        // Pass through safety sidecar (text content is untrusted external content)
+        return sanitizeAndFormat({
+          content: lines.join('\n'),
+          schema: 'message',
+          context: `Discord attachments from message ${messageId}`,
+          source: `discord:attachments:${channelId}:${messageId}`,
         });
       }
 

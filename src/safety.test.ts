@@ -116,13 +116,13 @@ test('formatMessagesText() formats messages correctly', (t) => {
       author: { username: 'alice' },
       content: 'Hello everyone',
       createdAt: new Date('2026-02-25T10:00:00.000Z'),
-      attachments: new Map<string, { name: string | null; contentType: string | null }>(),
+      attachments: new Map<string, { name: string | null; contentType: string | null; size?: number }>(),
     },
     {
       author: { username: 'bob' },
       content: 'Hey alice! Check this out',
       createdAt: new Date('2026-02-25T10:01:00.000Z'),
-      attachments: new Map<string, { name: string | null; contentType: string | null }>(),
+      attachments: new Map<string, { name: string | null; contentType: string | null; size?: number }>(),
     },
   ];
 
@@ -146,8 +146,8 @@ test('formatMessagesText() includes attachment info', (t) => {
       author: { username: 'bob' },
       content: 'Check this image',
       createdAt: new Date('2026-02-25T10:01:00.000Z'),
-      attachments: new Map<string, { name: string | null; contentType: string | null }>([
-        ['1', { name: 'image.png', contentType: 'image/png' }],
+      attachments: new Map<string, { name: string | null; contentType: string | null; size?: number }>([
+        ['1', { name: 'image.png', contentType: 'image/png', size: 12345 }],
       ]),
     },
   ];
@@ -156,7 +156,7 @@ test('formatMessagesText() includes attachment info', (t) => {
 
   assert.equal(
     output,
-    '[2d ago] bob: Check this image\n  Attachment: image.png (image/png)'
+    '[2d ago] bob: Check this image\n  Attachment: image.png (image/png, 12.1 KB)'
   );
 });
 
