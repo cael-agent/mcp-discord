@@ -1067,7 +1067,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           const sizeStr = formatFileSize(att.size);
           lines.push(`  Attachment: ${att.name ?? 'unknown'} (${att.contentType ?? 'unknown'}, ${sizeStr})`);
           lines.push(`    URL: ${att.url}`);
-          lines.push('    Use download_attachment to save and read this file.');
         }
         if (replyContext) {
           lines.push(`  Reply to: ${replyContext.author ?? 'unknown'}: ${replyContext.preview ?? '(unavailable)'}`);
