@@ -14,6 +14,7 @@ await build({
     'utf-8-validate',
     'zlib-sync',
     '@discordjs/erlpack',
+    'sharp',
   ],
   treeShaking: true,
 });

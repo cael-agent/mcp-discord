@@ -109,6 +109,6 @@ test('formatMessagesText includes message IDs in output', () => {
   ];
 
   const output = formatMessagesText(messages);
-  assert.ok(output.includes('[id:123456789012345678]'), 'output should contain message ID');
+  assert.ok(output.includes('[msg:123456789012345678]'), 'output should contain message ID');
   assert.ok(output.includes('alice: hello world'), 'output should contain author and content');
 });

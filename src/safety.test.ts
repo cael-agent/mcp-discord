@@ -132,7 +132,7 @@ test('formatMessagesText() formats messages correctly', (t) => {
 
   assert.equal(
     output,
-    '[2d ago] [id:1] alice: Hello everyone\n[2d ago] [id:2] bob: Hey alice! Check this out'
+    '[2d ago] [msg:1] alice: Hello everyone\n[2d ago] [msg:2] bob: Hey alice! Check this out'
   );
 });
 
@@ -159,7 +159,7 @@ test('formatMessagesText() includes attachment info', (t) => {
 
   assert.equal(
     output,
-    '[2d ago] [id:2] bob: Check this image\n  Attachment: image.png (image/png, 12.1 KB)'
+    '[2d ago] [msg:2] bob: Check this image\n  Attachment: image.png (image/png, 12.1 KB)'
   );
 });
 

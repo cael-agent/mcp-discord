@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { access, mkdir, rename, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, readdir, rename, rm, stat as fsStat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import sharp from 'sharp';
 
 export const TEXT_EXTENSIONS = new Set([
   '.txt',
@@ -30,13 +31,27 @@ export const IMAGE_EXTENSIONS = new Set([
   '.jpeg',
   '.gif',
   '.webp',
-  '.svg',
   '.bmp',
 ]);
 
 export const PDF_EXTENSIONS = new Set(['.pdf']);
 
 export const MAX_FILE_SIZE = 25 * 1024 * 1024;
+export const IMAGE_MAX_DIMENSION = 1024;
+export const TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+export const ALLOWED_HOSTS = ['cdn.discordapp.com', 'media.discordapp.net'];
+
+export const MAGIC_BYTES: Record<string, Array<{ offset: number; bytes: number[] }>> = {
+  'image/png': [{ offset: 0, bytes: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] }],
+  'image/jpeg': [{ offset: 0, bytes: [0xff, 0xd8, 0xff] }],
+  'image/gif': [{ offset: 0, bytes: [0x47, 0x49, 0x46, 0x38] }],
+  'image/webp': [
+    { offset: 0, bytes: [0x52, 0x49, 0x46, 0x46] },
+    { offset: 8, bytes: [0x57, 0x45, 0x42, 0x50] },
+  ],
+  'image/bmp': [{ offset: 0, bytes: [0x42, 0x4d] }],
+};
 
 export type DownloadResult = {
   filename: string;
@@ -46,6 +61,7 @@ export type DownloadResult = {
   downloaded: boolean;
   reason?: string;
   textContent?: string;
+  isImage?: boolean;
 };
 
 function normalizeContentType(contentType: string): string {
@@ -66,9 +82,20 @@ function isTextFile(filename: string, contentType: string): boolean {
   return TEXT_EXTENSIONS.has(ext) || normalizedContentType.startsWith('text/');
 }
 
+export function isImageFile(filename: string, contentType: string): boolean {
+  const ext = getExtension(filename);
+  const baseContentType = contentTypeWithoutParameters(contentType);
+  if (baseContentType === 'image/svg+xml' || ext === '.svg') return false;
+  return IMAGE_EXTENSIONS.has(ext) || baseContentType.startsWith('image/');
+}
+
 export function isSupportedType(contentType: string, filename: string): boolean {
   const normalizedContentType = normalizeContentType(contentType);
   const baseContentType = contentTypeWithoutParameters(normalizedContentType);
+
+  if (baseContentType === 'image/svg+xml') return false;
+  const ext = getExtension(filename);
+  if (ext === '.svg') return false;
 
   if (baseContentType && baseContentType !== 'application/octet-stream') {
     return (
@@ -78,15 +105,14 @@ export function isSupportedType(contentType: string, filename: string): boolean 
     );
   }
 
-  const extension = getExtension(filename);
-  if (!extension) {
+  if (!ext) {
     return false;
   }
 
   return (
-    TEXT_EXTENSIONS.has(extension) ||
-    IMAGE_EXTENSIONS.has(extension) ||
-    PDF_EXTENSIONS.has(extension)
+    TEXT_EXTENSIONS.has(ext) ||
+    IMAGE_EXTENSIONS.has(ext) ||
+    PDF_EXTENSIONS.has(ext)
   );
 }
 
@@ -131,6 +157,55 @@ export function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+export function validateUrl(url: string): void {
+  const parsed = new URL(url);
+  if (!ALLOWED_HOSTS.includes(parsed.hostname)) {
+    throw new Error(`URL host "${parsed.hostname}" is not an allowed Discord CDN host`);
+  }
+}
+
+export function validateMagicBytes(buffer: Buffer, contentType: string): void {
+  const baseContentType = contentTypeWithoutParameters(contentType);
+  const expected = MAGIC_BYTES[baseContentType];
+  if (!expected) return;
+
+  for (const check of expected) {
+    if (buffer.length < check.offset + check.bytes.length) {
+      throw new Error('file header does not match claimed type');
+    }
+    for (let i = 0; i < check.bytes.length; i++) {
+      if (buffer[check.offset + i] !== check.bytes[i]) {
+        throw new Error('file header does not match claimed type');
+      }
+    }
+  }
+}
+
+export async function cleanupOldFiles(dir: string, maxAgeMs: number = TTL_MS): Promise<number> {
+  let deleted = 0;
+  try {
+    const entries = await readdir(dir);
+    const now = Date.now();
+
+    for (const entry of entries) {
+      if (entry.startsWith('.')) continue;
+      const filePath = path.join(dir, entry);
+      try {
+        const stats = await fsStat(filePath);
+        if (stats.isFile() && (now - stats.mtimeMs) > maxAgeMs) {
+          await rm(filePath, { force: true });
+          deleted++;
+        }
+      } catch {
+        // Skip files we can't stat or delete
+      }
+    }
+  } catch {
+    // Directory doesn't exist yet, nothing to clean
+  }
+  return deleted;
+}
+
 async function pathExists(filePath: string): Promise<boolean> {
   try {
     await access(filePath);
@@ -164,6 +239,7 @@ export async function downloadAttachments(opts: {
   attachmentsDir: string;
 }): Promise<DownloadResult[]> {
   await mkdir(opts.attachmentsDir, { recursive: true });
+  await cleanupOldFiles(opts.attachmentsDir);
 
   const results: DownloadResult[] = [];
 
@@ -194,6 +270,22 @@ export async function downloadAttachments(opts: {
       continue;
     }
 
+    try {
+      validateUrl(attachment.url);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      results.push({
+        filename: attachment.filename,
+        localPath: '',
+        size: attachment.size,
+        contentType,
+        downloaded: false,
+        reason: message,
+      });
+      continue;
+    }
+
+    const imageFile = isImageFile(attachment.filename, contentType);
     const sanitizedFilename = sanitizeFilename(attachment.filename);
     const basePath = path.join(opts.attachmentsDir, `${opts.messageId}-${sanitizedFilename}`);
     const targetPath = await resolveCollision(basePath);
@@ -205,16 +297,34 @@ export async function downloadAttachments(opts: {
         throw new Error(`HTTP ${response.status} ${response.statusText}`.trim());
       }
 
-      const buffer = Buffer.from(await response.arrayBuffer());
+      let buffer: Buffer = Buffer.from(await response.arrayBuffer());
+
+      if (buffer.length > MAX_FILE_SIZE) {
+        throw new Error('actual download size exceeds 25 MB limit');
+      }
+
+      if (imageFile) {
+        validateMagicBytes(buffer, contentType);
+
+        buffer = await sharp(buffer)
+          .rotate()
+          .resize(IMAGE_MAX_DIMENSION, IMAGE_MAX_DIMENSION, {
+            fit: 'inside',
+            withoutEnlargement: true,
+          })
+          .toBuffer();
+      }
+
       await writeFile(tempPath, buffer);
       await rename(tempPath, targetPath);
 
       const result: DownloadResult = {
         filename: attachment.filename,
         localPath: targetPath,
-        size: attachment.size,
+        size: buffer.length,
         contentType,
         downloaded: true,
+        isImage: imageFile,
       };
 
       if (isTextFile(attachment.filename, contentType)) {
