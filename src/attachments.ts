@@ -328,7 +328,14 @@ export async function downloadAttachments(opts: {
       };
 
       if (isTextFile(attachment.filename, contentType)) {
-        result.textContent = buffer.toString('utf8');
+        const MAX_TEXT_CONTENT_LENGTH = 50_000;
+        const fullText = buffer.toString('utf8');
+        if (fullText.length > MAX_TEXT_CONTENT_LENGTH) {
+          result.textContent = fullText.slice(0, MAX_TEXT_CONTENT_LENGTH)
+            + `\n[truncated at 50,000 chars — full file saved at ${targetPath}]`;
+        } else {
+          result.textContent = fullText;
+        }
       }
 
       results.push(result);

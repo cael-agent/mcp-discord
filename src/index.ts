@@ -1154,7 +1154,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         // Pass through safety sidecar (text content is untrusted external content)
         return sanitizeAndFormat({
           content: lines.join('\n'),
-          schema: 'message',
+          schema: 'attachment',
           context: `Discord attachments from message ${messageId}`,
           source: `discord:attachments:${channelId}:${messageId}`,
         });

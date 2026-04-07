@@ -635,3 +635,98 @@ test('downloadAttachments() resizes large images to max dimension', async (t) =>
   assert.ok(metadata.width! <= 1024, `width ${metadata.width} should be <= 1024`);
   assert.ok(metadata.height! <= 1024, `height ${metadata.height} should be <= 1024`);
 });
+
+// --- Text content truncation ---
+
+test('downloadAttachments() text under 50,000 chars passes through unchanged', async (t) => {
+  const attachmentsDir = await makeTempDir(t);
+  const content = 'x'.repeat(49_999);
+
+  setMockFetch(t, async () =>
+    new Response(content, {
+      status: 200,
+      headers: { 'Content-Type': 'text/plain' },
+    })
+  );
+
+  const [result] = await downloadAttachments({
+    messageId: 'm-trunc-1',
+    attachments: [
+      {
+        url: `${CDN_BASE}/under.txt`,
+        filename: 'under.txt',
+        contentType: 'text/plain',
+        size: Buffer.byteLength(content),
+      },
+    ],
+    attachmentsDir,
+  });
+
+  assert.ok(result);
+  assert.equal(result.downloaded, true);
+  assert.equal(result.textContent, content);
+});
+
+test('downloadAttachments() text exactly 50,000 chars passes through unchanged', async (t) => {
+  const attachmentsDir = await makeTempDir(t);
+  const content = 'x'.repeat(50_000);
+
+  setMockFetch(t, async () =>
+    new Response(content, {
+      status: 200,
+      headers: { 'Content-Type': 'text/plain' },
+    })
+  );
+
+  const [result] = await downloadAttachments({
+    messageId: 'm-trunc-2',
+    attachments: [
+      {
+        url: `${CDN_BASE}/exact.txt`,
+        filename: 'exact.txt',
+        contentType: 'text/plain',
+        size: Buffer.byteLength(content),
+      },
+    ],
+    attachmentsDir,
+  });
+
+  assert.ok(result);
+  assert.equal(result.downloaded, true);
+  assert.equal(result.textContent, content);
+});
+
+test('downloadAttachments() text over 50,000 chars is truncated with correct path', async (t) => {
+  const attachmentsDir = await makeTempDir(t);
+  const content = 'x'.repeat(50_001);
+
+  setMockFetch(t, async () =>
+    new Response(content, {
+      status: 200,
+      headers: { 'Content-Type': 'text/plain' },
+    })
+  );
+
+  const [result] = await downloadAttachments({
+    messageId: 'm-trunc-3',
+    attachments: [
+      {
+        url: `${CDN_BASE}/big.txt`,
+        filename: 'big.txt',
+        contentType: 'text/plain',
+        size: Buffer.byteLength(content),
+      },
+    ],
+    attachmentsDir,
+  });
+
+  assert.ok(result);
+  assert.equal(result.downloaded, true);
+
+  const expectedPath = path.join(attachmentsDir, 'm-trunc-3-big.txt');
+  assert.equal(result.localPath, expectedPath);
+
+  const expectedText =
+    'x'.repeat(50_000) + `\n[truncated at 50,000 chars — full file saved at ${expectedPath}]`;
+  assert.equal(result.textContent, expectedText);
+});
