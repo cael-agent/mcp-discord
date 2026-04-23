@@ -6,6 +6,7 @@ import test from 'node:test';
 
 import {
   getChannelHighwater,
+  getDefaultPreviewStatePath,
   getDefaultStatePath,
   loadHighwater,
   saveHighwater,
@@ -128,4 +129,32 @@ test('getDefaultStatePath returns default when env var is not set', (t) => {
 
   delete process.env.DISCORD_STATE_PATH;
   assert.equal(getDefaultStatePath(), 'data/highwater.json');
+});
+
+test('getDefaultPreviewStatePath returns env var when set', (t) => {
+  const original = process.env.DISCORD_PREVIEW_STATE_PATH;
+  t.after(() => {
+    if (original === undefined) {
+      delete process.env.DISCORD_PREVIEW_STATE_PATH;
+    } else {
+      process.env.DISCORD_PREVIEW_STATE_PATH = original;
+    }
+  });
+
+  process.env.DISCORD_PREVIEW_STATE_PATH = '/custom/preview-path.json';
+  assert.equal(getDefaultPreviewStatePath(), '/custom/preview-path.json');
+});
+
+test('getDefaultPreviewStatePath returns default when env var is not set', (t) => {
+  const original = process.env.DISCORD_PREVIEW_STATE_PATH;
+  t.after(() => {
+    if (original === undefined) {
+      delete process.env.DISCORD_PREVIEW_STATE_PATH;
+    } else {
+      process.env.DISCORD_PREVIEW_STATE_PATH = original;
+    }
+  });
+
+  delete process.env.DISCORD_PREVIEW_STATE_PATH;
+  assert.equal(getDefaultPreviewStatePath(), 'data/preview-highwater.json');
 });

@@ -11,6 +11,10 @@ export function getDefaultStatePath(): string {
   return process.env.DISCORD_STATE_PATH ?? 'data/highwater.json';
 }
 
+export function getDefaultPreviewStatePath(): string {
+  return process.env.DISCORD_PREVIEW_STATE_PATH ?? 'data/preview-highwater.json';
+}
+
 export async function loadHighwater(filePath: string): Promise<HighwaterState> {
   try {
     const raw = await readFile(filePath, 'utf-8');

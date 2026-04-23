@@ -492,4 +492,30 @@ export const tools = [
       additionalProperties: false,
     },
   },
+  {
+    name: 'preview_discord',
+    description:
+      "Scan new Discord messages as compact one-line previews grouped by channel. Bot and webhook posts are suppressed from the body and counted separately so the output stays focused on human-authored messages. Use this with read_channel when you want the full thread or message context after scanning. As a trusted-server design choice, this preview bypasses the safety sidecar instead of calling sanitize or prefilter.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        channel: {
+          type: 'string',
+          description: 'Optional channel name or ID to preview. If omitted, scans all readable text channels except logs.',
+        },
+        since: {
+          type: 'string',
+          description: 'Optional ISO 8601 timestamp override. If provided, previews messages after this time instead of using the stored preview highwater mark.',
+        },
+        limit: {
+          type: 'number',
+          description: 'Optional per-channel preview count. Defaults to 3, minimum 1, maximum 10.',
+          default: 3,
+          minimum: 1,
+          maximum: 10,
+        },
+      },
+      additionalProperties: false,
+    },
+  },
 ];

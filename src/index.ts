@@ -50,12 +50,14 @@ import {
 } from './attachments.js';
 import {
   getChannelHighwater,
+  getDefaultPreviewStatePath,
   getDefaultStatePath,
   loadHighwater,
   saveHighwater,
   updateMultipleHighwaters,
 } from './highwater.js';
 import { MessageChannelCache } from './message-cache.js';
+import { runPreviewDiscord } from './preview-discord-runtime.js';
 import { formatRelativeTime } from './relative-time.js';
 import { sanitize } from './safety-client.js';
 import { tools } from './tools/index.js';
@@ -1006,6 +1008,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           context: `New Discord messages across ${groups.length} channel(s)`,
           source: 'discord:check_new_messages',
         });
+      }
+
+      case 'preview_discord': {
+        // preview_discord bypasses the sidecar (trusted boundary — see
+        // ../free-agent/docs/project-context.md "Safety routing policy").
+        // Do NOT add sanitize/prefilter calls here without revisiting policy.
+        const guildId = requireConfiguredGuildId();
+        const { text } = await runPreviewDiscord({
+          args,
+          discord,
+          guildId,
+          channelMap: CHANNEL_MAP,
+          logsChannelId: CHANNEL_MAP.logs,
+          messageChannelCache,
+          stateFilePath: getDefaultPreviewStatePath(),
+        });
+        return { content: [{ type: 'text', text }] };
       }
 
       case 'read_message': {

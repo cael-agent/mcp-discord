@@ -1,8 +1,33 @@
 {
   "version": "v4",
-  "tasks": {},
+  "tasks": {
+    "implement-pr-b-previewdiscord-ru": {
+      "status": "done",
+      "priority": 1,
+      "tags": [
+        "feature",
+        "test"
+      ],
+      "description": "Implement PR 1b preview_discord runtime, formatter, dispatch wiring, and verification",
+      "file": "tasks/implement-pr-b-previewdiscord-ru.md",
+      "created_at": "2026-04-23T22:44:10.249394729Z",
+      "updated_at": "2026-04-23T22:55:44.176256124Z"
+    },
+    "write-failing-tests-for-previewd": {
+      "status": "done",
+      "priority": 1,
+      "tags": [
+        "test",
+        "feature"
+      ],
+      "description": "Write failing tests for preview_discord PR 1b (preview-first redesign) without implementing feature logic",
+      "file": "tasks/write-failing-tests-for-previewd.md",
+      "created_at": "2026-04-23T22:14:22.740834017Z",
+      "updated_at": "2026-04-23T22:27:42.71458997Z"
+    }
+  },
   "archived_count": 0,
-  "learnings_count": 0,
+  "learnings_count": 1,
   "decisions_count": 0,
-  "updated_at": "2026-02-25T05:26:44.159479635Z"
+  "updated_at": "2026-04-23T22:55:44.178515673Z"
 }
