@@ -17,7 +17,10 @@
  */
 
 const SIDECAR_URL = process.env.SAFETY_SIDECAR_URL ?? 'http://safety-sidecar:3100'
-const TIMEOUT_MS = Number(process.env.SAFETY_TIMEOUT_MS) || 180_000
+// Sidecar retry ceiling is READER_TIMEOUT_MS (240s) x 2 attempts + ~5s retry delay ~= 485s.
+// Keep the client above that, with some buffer for transport and JSON parsing.
+export const DEFAULT_SAFETY_TIMEOUT_MS = 520_000
+const TIMEOUT_MS = Number(process.env.SAFETY_TIMEOUT_MS) || DEFAULT_SAFETY_TIMEOUT_MS
 
 type SanitizeRequest = {
   content: string
