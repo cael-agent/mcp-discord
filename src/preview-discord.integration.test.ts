@@ -124,8 +124,10 @@ async function makeTmpDir(t: TestContext): Promise<string> {
   return dir;
 }
 
-async function writeStateFile(filePath: string, channels: Record<string, string>): Promise<void> {
-  await writeFile(filePath, JSON.stringify({ channels }, null, 2), 'utf-8');
+async function writeStateFile(filePath: string, channels: Record<string, string>): Promise<string> {
+  const raw = JSON.stringify({ channels }, null, 2);
+  await writeFile(filePath, raw, 'utf-8');
+  return raw;
 }
 
 test('runPreviewDiscord makes zero sidecar calls for a happy-path preview', async (t) => {
@@ -474,6 +476,41 @@ test('preview highwater persists newest ids per channel across calls', async (t)
   assert.doesNotMatch(secondResult.text, /first run message/);
   assert.doesNotMatch(secondResult.text, /second run message/);
   assert.match(secondResult.text, /third run message/);
+});
+
+test('preview highwater is unchanged when build output throws', async (t) => {
+  const dir = await makeTmpDir(t);
+  const stateFilePath = path.join(dir, 'preview-highwater.json');
+  const existing = await writeStateFile(stateFilePath, {
+    [CHANNEL_MAP.cael]: snowflakeFromDate(new Date('2026-04-23T18:57:00.000Z')),
+  });
+
+  await assert.rejects(
+    runPreviewDiscord({
+      args: { channel: 'cael' },
+      discord: makeDiscord([
+        {
+          id: CHANNEL_MAP.cael,
+          name: 'cael',
+          messages: [
+            makeMessage({ content: 'do not mark read before output', createdAt: new Date('2026-04-23T18:58:00.000Z') }),
+          ],
+        },
+      ]),
+      guildId: GUILD_ID,
+      channelMap: CHANNEL_MAP,
+      logsChannelId: LOGS_CHANNEL_ID,
+      messageChannelCache: new MessageChannelCache(),
+      stateFilePath,
+      now: () => Date.parse('2026-04-23T19:00:00.000Z'),
+      buildOutput: () => {
+        throw new Error('preview render failed');
+      },
+    }),
+    /preview render failed/,
+  );
+
+  assert.equal(await readFile(stateFilePath, 'utf-8'), existing);
 });
 
 test('runPreviewDiscord enforces the 10k total output cap and drops channels from the end', async (t) => {

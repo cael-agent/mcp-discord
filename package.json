@@ -11,7 +11,7 @@
     "bundle": "node esbuild.config.mjs",
     "start": "node dist/bundle.js",
     "dev": "tsc --watch",
-    "test": "tsc && node --test 'dist/**/*.test.js'"
+    "test": "tsc && node --test --test-force-exit 'dist/**/*.test.js'"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",

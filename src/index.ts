@@ -31,6 +31,7 @@ import {
   type ButtonStyleName,
   clampMessageLimit,
   clampTimeoutSeconds,
+  formatMessagePreview,
   MAX_DISCORD_FILE_SIZE_BYTES,
   MentionTracker,
   parseHexColor,
@@ -49,18 +50,17 @@ import {
   type DownloadResult,
 } from './attachments.js';
 import {
-  getChannelHighwater,
   getDefaultPreviewStatePath,
   getDefaultStatePath,
-  loadHighwater,
-  saveHighwater,
-  updateMultipleHighwaters,
 } from './highwater.js';
+import { runCheckNewMessages } from './check-new-messages-runtime.js';
 import { MessageChannelCache } from './message-cache.js';
 import { runPreviewDiscord } from './preview-discord-runtime.js';
 import { formatRelativeTime } from './relative-time.js';
 import { sanitize } from './safety-client.js';
 import { tools } from './tools/index.js';
+
+export { formatMessagePreview } from './helpers.js';
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID;
@@ -161,10 +161,6 @@ const botMessageIds = new Set<string>();
 const pendingButtons = new Map<string, PendingButtons>();
 const buttonClicks = new Map<string, StoredButtonClick[]>();
 const messageChannelCache = new MessageChannelCache();
-
-const FIRST_RUN_LIMIT = 25;
-const CHECK_NEW_MESSAGES_LIMIT = 100;
-const PREVIEW_LENGTH = 150;
 
 const discord = new Client({
   intents: [
@@ -538,13 +534,6 @@ export function formatMentionsText(mentions: TrackedMention[]): string {
     .join('\n');
 }
 
-export function formatMessagePreview(content: string, maxLength = PREVIEW_LENGTH): string {
-  if (content.length <= maxLength) {
-    return content;
-  }
-  return content.slice(0, maxLength - 3) + '...';
-}
-
 export async function sanitizeAndFormat(opts: {
   content: string;
   schema: string;
@@ -867,146 +856,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'check_new_messages': {
         const guildId = requireConfiguredGuildId();
-        const guild = await discord.guilds.fetch(guildId);
-        const sinceTimestamp = parseOptionalTimestamp(args.since, 'since');
-        const statePath = getDefaultStatePath();
-        let hwState = await loadHighwater(statePath);
-
-        // Determine which channels to check
-        let channelsToCheck: Array<{ id: string; name: string }>;
-
-        if (args.channel !== undefined) {
-          const channel = await fetchTextChannelByInput(args.channel);
-          const rawChannel = channel as any;
-          const channelName = typeof rawChannel.name === 'string' ? rawChannel.name as string : channel.id;
-          channelsToCheck = [{ id: channel.id, name: channelName }];
-        } else {
-          const logsChannelId = CHANNEL_MAP.logs;
-          const fetchedChannels = await guild.channels.fetch();
-          channelsToCheck = [...fetchedChannels.values()]
-            .filter((ch): ch is NonNullable<typeof ch> => ch !== null)
-            .filter((ch) => ch.isTextBased())
-            .filter((ch) => ch.id !== logsChannelId)
-            .map((ch) => {
-              const raw = ch as any;
-              return {
-                id: ch.id,
-                name: typeof raw.name === 'string' ? raw.name as string : ch.id,
-              };
-            });
-        }
-
-        type MessageSummary = {
-          message_id: string;
-          channel: { name: string; id: string };
-          author: string;
-          timestamp: string;
-          preview: string;
-          attachments: Array<{ filename: string; contentType: string; size: number }>;
-          mentions_bot: boolean;
-          is_self: boolean;
-        };
-
-        type ChannelGroup = {
-          channel: { name: string; id: string };
-          message_count: number;
-          messages: MessageSummary[];
-        };
-
-        const groups: ChannelGroup[] = [];
-        const hwUpdates: Record<string, string> = {};
-        const botUserId = discord.user?.id;
-
-        for (const { id: channelId, name: channelName } of channelsToCheck) {
-          try {
-            const channel = await discord.channels.fetch(channelId);
-            if (!channel || !channel.isTextBased()) continue;
-            const sendable = toSendableMessageChannel(channel);
-
-            const highwater = getChannelHighwater(hwState, channelId);
-
-            let fetchOptions: { limit?: number; after?: string };
-            if (sinceTimestamp) {
-              // Convert timestamp to synthetic Discord snowflake
-              const discordEpoch = 1420070400000n;
-              const sinceSnowflake = String((BigInt(sinceTimestamp) - discordEpoch) << 22n);
-              fetchOptions = { after: sinceSnowflake, limit: CHECK_NEW_MESSAGES_LIMIT };
-            } else if (highwater) {
-              fetchOptions = { after: highwater, limit: CHECK_NEW_MESSAGES_LIMIT };
-            } else {
-              fetchOptions = { limit: FIRST_RUN_LIMIT };
-            }
-
-            const fetched = (await sendable.messages.fetch(fetchOptions)) as Map<string, Message>;
-            const messages = [...fetched.values()]
-              .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-
-            if (messages.length === 0) continue;
-
-            messageChannelCache.setMany(
-              messages.map((msg) => ({ messageId: msg.id, channelId })),
-            );
-
-            const newest = messages[messages.length - 1];
-            hwUpdates[channelId] = newest.id;
-
-            const summaries: MessageSummary[] = messages.map((msg) => ({
-              message_id: msg.id,
-              channel: { name: channelName, id: channelId },
-              author: msg.author.username,
-              timestamp: msg.createdAt.toISOString(),
-              preview: formatMessagePreview(msg.content),
-              attachments: [...msg.attachments.values()].map((att) => ({
-                filename: att.name ?? 'unknown',
-                contentType: att.contentType ?? 'unknown',
-                size: att.size,
-              })),
-              mentions_bot: !!botUserId && msg.mentions.has(botUserId),
-              is_self: !!botUserId && msg.author.id === botUserId,
-            }));
-
-            groups.push({
-              channel: { name: channelName, id: channelId },
-              message_count: summaries.length,
-              messages: summaries,
-            });
-          } catch {
-            // Skip channels we can't read (permissions, etc.)
-            continue;
-          }
-        }
-
-        // Update highwater marks
-        if (Object.keys(hwUpdates).length > 0) {
-          hwState = updateMultipleHighwaters(hwState, hwUpdates);
-          await saveHighwater(statePath, hwState);
-        }
-
-        if (groups.length === 0) {
-          return toResponse({ channels: [], total_new_messages: 0 });
-        }
-
-        // Build text for safety sidecar
-        const textParts: string[] = [];
-        let totalNewMessages = 0;
-        for (const group of groups) {
-          textParts.push(`#${group.channel.name} (${group.message_count} new):`);
-          totalNewMessages += group.message_count;
-          for (const msg of group.messages) {
-            const selfTag = msg.is_self ? ' (you)' : '';
-            textParts.push(`  [${formatRelativeTime(msg.timestamp)}] [msg:${msg.message_id}] ${msg.author}${selfTag}: ${msg.preview}`);
-            for (const att of msg.attachments) {
-              textParts.push(`    Attachment: ${att.filename} (${att.contentType}, ${formatFileSize(att.size)})`);
-            }
-          }
-        }
-        const formatted = textParts.join('\n');
-
-        return sanitizeAndFormat({
-          content: formatted,
-          schema: 'socialFeedBatch',
-          context: `New Discord messages across ${groups.length} channel(s)`,
-          source: 'discord:check_new_messages',
+        return runCheckNewMessages({
+          args,
+          discord,
+          guildId,
+          channelMap: CHANNEL_MAP,
+          logsChannelId: CHANNEL_MAP.logs,
+          messageChannelCache,
+          stateFilePath: getDefaultStatePath(),
+          sanitizeAndFormat,
         });
       }
 

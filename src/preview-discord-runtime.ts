@@ -87,6 +87,7 @@ export interface RunPreviewDiscordOptions {
   stateFilePath: string;
   maxChars?: number;
   now?: () => number;
+  buildOutput?: typeof buildPreviewOutput;
 }
 
 const DISCORD_EPOCH_MS = 1420070400000n;
@@ -219,14 +220,13 @@ export async function runPreviewDiscord(opts: RunPreviewDiscordOptions): Promise
     });
   }
 
+  const buildOutput = opts.buildOutput ?? buildPreviewOutput;
+  const text = await withMockNow(opts.now, async () => buildOutput(groups, { maxChars }));
+
   if (Object.keys(updates).length > 0) {
     state = updateMultipleHighwaters(state, updates);
     await saveHighwater(opts.stateFilePath, state);
   }
-
-  const text = await withMockNow(opts.now, async () =>
-    buildPreviewOutput(groups, { maxChars }),
-  );
 
   return { text };
 }

@@ -25,6 +25,7 @@ export const MAX_TIMEOUT_SECONDS = 3600;
 export const MAX_MENTION_AGE_MS = 48 * 60 * 60 * 1000;
 export const MAX_DISCORD_MESSAGE_LENGTH = 2000;
 export const MAX_DISCORD_FILE_SIZE_BYTES = 25 * 1024 * 1024;
+export const PREVIEW_LENGTH = 150;
 export const VALID_BUTTON_STYLES = ['primary', 'secondary', 'success', 'danger'] as const;
 export type ButtonStyleName = (typeof VALID_BUTTON_STYLES)[number];
 export type ButtonInput = {
@@ -126,6 +127,13 @@ export function requireString(rawValue: unknown, fieldName: string): string {
   }
 
   return trimmed;
+}
+
+export function formatMessagePreview(content: string, maxLength = PREVIEW_LENGTH): string {
+  if (content.length <= maxLength) {
+    return content;
+  }
+  return content.slice(0, maxLength - 3) + '...';
 }
 
 export function validateDiscordMessageText(rawValue: unknown, fieldName: string): string {
