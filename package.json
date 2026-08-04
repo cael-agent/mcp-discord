@@ -16,7 +16,8 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",
     "discord.js": "^14.16.0",
-    "sharp": "^0.34.5"
+    "sharp": "^0.34.5",
+    "undici": "8.10.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

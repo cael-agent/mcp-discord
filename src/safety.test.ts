@@ -92,7 +92,9 @@ test('sanitize() returns error on sidecar failure', async (t) => {
 
 test('sanitize() returns error when sidecar is unreachable', async (t) => {
   setMockFetch(t, async () => {
-    throw new Error('ECONNREFUSED');
+    throw Object.assign(new TypeError('fetch failed'), {
+      cause: Object.assign(new Error('connect ECONNREFUSED 172.18.0.2:3100'), { code: 'ECONNREFUSED' }),
+    });
   });
 
   const result = await sanitize({
@@ -104,7 +106,7 @@ test('sanitize() returns error when sidecar is unreachable', async (t) => {
 
   assert.deepEqual(result, {
     ok: false,
-    error: 'Safety sidecar unreachable: ECONNREFUSED',
+    error: 'Safety sidecar unreachable (ECONNREFUSED): fetch failed',
   });
 });
 
@@ -241,7 +243,9 @@ test('sanitizeAndFormat() returns error text when sidecar returns error', async 
 
 test('sanitizeAndFormat() returns error when sidecar unreachable', async (t) => {
   setMockFetch(t, async () => {
-    throw new Error('ECONNREFUSED');
+    throw Object.assign(new TypeError('fetch failed'), {
+      cause: Object.assign(new Error('connect ECONNREFUSED 172.18.0.2:3100'), { code: 'ECONNREFUSED' }),
+    });
   });
 
   const result = await sanitizeAndFormat({
@@ -252,12 +256,14 @@ test('sanitizeAndFormat() returns error when sidecar unreachable', async (t) => 
   });
 
   assert.equal(result.isError, true);
-  assert.match(result.content[0]?.text ?? '', /^\[Safety: Safety sidecar unreachable: /);
+  assert.match(result.content[0]?.text ?? '', /^\[Safety: Safety sidecar unreachable \(ECONNREFUSED\): /);
 });
 
 test('fail-closed: raw content never returned on sidecar failure', async (t) => {
   setMockFetch(t, async () => {
-    throw new Error('ECONNREFUSED');
+    throw Object.assign(new TypeError('fetch failed'), {
+      cause: Object.assign(new Error('connect ECONNREFUSED 172.18.0.2:3100'), { code: 'ECONNREFUSED' }),
+    });
   });
 
   const result = await sanitizeAndFormat({
