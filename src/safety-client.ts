@@ -16,7 +16,7 @@
  *   }
  */
 
-import { Agent } from 'undici'
+import { Agent, fetch } from 'undici'
 
 const SIDECAR_URL = process.env.SAFETY_SIDECAR_URL ?? 'http://safety-sidecar:3100'
 // Sidecar retry ceiling is READER_TIMEOUT_MS x 2 attempts + ~5s retry delay.
@@ -85,7 +85,7 @@ async function post(path: string, body: unknown): Promise<SidecarResponse> {
       body: requestBody,
       signal: controller.signal,
       dispatcher,
-    } as RequestInit)
+    })
     return await res.json() as SidecarResponse
   } catch (err) {
     const elapsed = Date.now() - startedAt
