@@ -1,0 +1,19 @@
+$ python3 <string-preservation check: HEAD:src/safety-client.ts vs working tree>
+
+PASS  abort timeout  (byte-for-byte, modulo the ctx variable renames)
+    HEAD: 'Safety review exceeded timeout (payload: ${requestBody.length} chars, elapsed: ${elapsed}ms) — sidecar likely still processing a large payload; try a smaller scope'
+    NOW : 'Safety review exceeded timeout (payload: ${payloadChars} chars, elapsed: ${elapsedMs}ms) — sidecar likely still processing a large payload; try a smaller scope'
+PASS  code timeout  (byte-for-byte, modulo the ctx variable renames)
+    HEAD: 'Safety sidecar timed out mid-processing (${code}, payload: ${requestBody.length} chars, elapsed: ${elapsed}ms) — sidecar is up but slow on a large payload; try a smaller scope'
+    NOW : 'Safety sidecar timed out mid-processing (${code}, payload: ${payloadChars} chars, elapsed: ${elapsedMs}ms) — sidecar is up but slow on a large payload; try a smaller scope'
+PASS  unreachable  (byte-for-byte, modulo the ctx variable renames)
+    HEAD: 'Safety sidecar unreachable (${code}): ${message}'
+    NOW : 'Safety sidecar unreachable (${code}): ${message}'
+PASS  fallback: neutral subject, optional-code shape otherwise identical
+    HEAD: 'Safety sidecar request failed${code !== undefined ? '
+    NOW : 'Safety review request failed${code !== undefined ? '
+PASS  client fault: matches the PM-specified string exactly
+    NOW : 'Discord-reader client-side request fault (${code}): ${message} — request never reached the safety sidecar'
+
+RESULT: ALL STRING CHECKS PASS
+exit=0

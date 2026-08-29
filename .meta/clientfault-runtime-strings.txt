@@ -1,0 +1,8 @@
+$ node -e "<import dist/safety-client.js and print each composed class>"
+abort       : Safety review exceeded timeout (payload: 4096 chars, elapsed: 1234ms) — sidecar likely still processing a large payload; try a smaller scope
+timeout     : Safety sidecar timed out mid-processing (UND_ERR_HEADERS_TIMEOUT, payload: 4096 chars, elapsed: 1234ms) — sidecar is up but slow on a large payload; try a smaller scope
+unreachable : Safety sidecar unreachable (ECONNREFUSED): fetch failed
+client fault: Discord-reader client-side request fault (UND_ERR_INVALID_ARG): fetch failed — request never reached the safety sidecar
+neutral     : Safety review request failed (UND_ERR_SOCKET): fetch failed
+neutral/nocode: Safety review request failed: something broke
+exit=0

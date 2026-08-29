@@ -1,0 +1,60 @@
+=== repo-wide sibling audit for composed safety-sidecar error text (post-edit) ===
+
+$ grep -rn "Safety sidecar\|Safety review\|Discord-reader\|\[Safety" src --include=*.ts
+src/check-new-messages-runtime.test.ts:173:    return { content: [{ type: 'text', text: '[Safety: boom]' }], isError: true };
+src/check-new-messages-runtime.test.ts:333:    content: [{ type: 'text', text: '[Safety: boom]' }],
+src/index.ts:546:      content: [{ type: 'text', text: `[Safety: ${result.error}]` }],
+src/safety-client.ts:2: * Safety sidecar client — copy this file into your MCP server.
+src/safety-client.ts:15: *     return { content: [{ type: 'text', text: `[Safety error: ${result.error}]` }] }
+src/safety-client.ts:114:    return `Safety review exceeded timeout (payload: ${payloadChars} chars, elapsed: ${elapsedMs}ms) — sidecar likely still processing a large payload; try a smaller scope`
+src/safety-client.ts:118:    return `Safety sidecar timed out mid-processing (${code}, payload: ${payloadChars} chars, elapsed: ${elapsedMs}ms) — sidecar is up but slow on a large payload; try a smaller scope`
+src/safety-client.ts:121:    return `Safety sidecar unreachable (${code}): ${message}`
+src/safety-client.ts:124:    return `Discord-reader client-side request fault (${code}): ${message} — request never reached the safety sidecar`
+src/safety-client.ts:126:  return `Safety review request failed${code !== undefined ? ` (${code})` : ''}: ${message}`
+src/safety.test.ts:113:    error: 'Safety sidecar unreachable (ECONNREFUSED): fetch failed',
+src/safety.test.ts:243:    content: [{ type: 'text', text: '[Safety: blocked]' }],
+src/safety.test.ts:263:  assert.match(result.content[0]?.text ?? '', /^\[Safety: Safety sidecar unreachable \(ECONNREFUSED\): /);
+src/safety-client.test.ts:40:    'Discord-reader client-side request fault (UND_ERR_INVALID_ARG): fetch failed — request never reached the safety sidecar'
+src/safety-client.test.ts:47:  assert.doesNotMatch(error, /Safety sidecar (unreachable|timed out|request failed)/);
+src/safety-client.test.ts:61:      `Discord-reader client-side request fault (${code}): fetch failed — request never reached the safety sidecar`
+src/safety-client.test.ts:65:    assert.doesNotMatch(error, /Safety sidecar (unreachable|timed out|request failed)/);
+src/safety-client.test.ts:76:    'Safety review exceeded timeout (payload: 4096 chars, elapsed: 1234ms) — sidecar likely still processing a large payload; try a smaller scope'
+src/safety-client.test.ts:85:    'Safety review exceeded timeout (payload: 4096 chars, elapsed: 1234ms) — sidecar likely still processing a large payload; try a smaller scope'
+src/safety-client.test.ts:93:      `Safety sidecar timed out mid-processing (${code}, payload: 4096 chars, elapsed: 1234ms) — sidecar is up but slow on a large payload; try a smaller scope`
+src/safety-client.test.ts:111:      `Safety sidecar unreachable (${code}): fetch failed`
+src/safety-client.test.ts:121:  assert.equal(error, 'Safety review request failed (UND_ERR_SOCKET): fetch failed');
+src/safety-client.test.ts:129:  assert.equal(error, 'Safety review request failed: something broke');
+src/safety-client.test.ts:145:    assert.equal(error, `Safety review request failed (${code}): fetch failed`);
+src/safety-client.test.ts:154:  assert.equal(describeRequestFailure('just a string', CTX), 'Safety review request failed: unknown');
+src/safety-client.test.ts:160:    'Safety sidecar unreachable (ECONNREFUSED): fetch failed'
+src/safety-client.test.ts:164:    'Safety review request failed: fetch failed'
+
+$ grep -rln "sanitize(\|prefilter(\|safety-client" src --include=*.ts
+src/index.ts
+src/safety.test.ts
+src/safety-client.ts
+src/safety-client.test.ts
+src/preview-discord.integration.test.ts
+
+$ grep -rn "sidecar" src --include=*.ts | grep -v "\.test\.ts"
+src/index.ts:872:        // preview_discord bypasses the sidecar (trusted boundary — see
+src/index.ts:939:        // Format as text for safety sidecar
+src/index.ts:1010:        // Build text summary for safety sidecar
+src/index.ts:1031:        // Pass through safety sidecar (text content is untrusted external content)
+src/safety-client.ts:2: * Safety sidecar client — copy this file into your MCP server.
+src/safety-client.ts:21:const SIDECAR_URL = process.env.SAFETY_SIDECAR_URL ?? 'http://safety-sidecar:3100'
+src/safety-client.ts:31:// The sidecar holds the HTTP response open until its Reader finishes (minutes on
+src/safety-client.ts:44:let sidecarFetch: SidecarFetch = undiciFetch
+src/safety-client.ts:51:  const previous = sidecarFetch
+src/safety-client.ts:52:  sidecarFetch = impl
+src/safety-client.ts:54:    sidecarFetch = previous
+src/safety-client.ts:70:// Transport died while the sidecar was (likely) still processing.
+src/safety-client.ts:72:// Could not reach the sidecar at all.
+src/safety-client.ts:88:// abort code — those belong to the sidecar, the network, or nobody in particular.
+src/safety-client.ts:101: * right to name the sidecar as the cause, and only the client-fault class may
+src/safety-client.ts:114:    return `Safety review exceeded timeout (payload: ${payloadChars} chars, elapsed: ${elapsedMs}ms) — sidecar likely still processing a large payload; try a smaller scope`
+src/safety-client.ts:118:    return `Safety sidecar timed out mid-processing (${code}, payload: ${payloadChars} chars, elapsed: ${elapsedMs}ms) — sidecar is up but slow on a large payload; try a smaller scope`
+src/safety-client.ts:121:    return `Safety sidecar unreachable (${code}): ${message}`
+src/safety-client.ts:124:    return `Discord-reader client-side request fault (${code}): ${message} — request never reached the safety sidecar`
+src/safety-client.ts:149:    const res = await sidecarFetch(`${SIDECAR_URL}${path}`, {
+src/tools/index.ts:498:      "Scan new Discord messages as compact one-line previews grouped by channel. Bot and webhook posts are suppressed from the body and counted separately so the output stays focused on human-authored messages. Use this with read_channel when you want the full thread or message context after scanning. As a trusted-server design choice, this preview bypasses the safety sidecar instead of calling sanitize or prefilter.",

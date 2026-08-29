@@ -1,0 +1,9 @@
+$ grep -c "Safety sidecar request failed" dist/bundle.js   # old locus string must be gone
+0
+grep exit=1 (1 = no match, expected)
+
+$ grep -o "Discord-reader client-side request fault ([^)]*): \${[a-z]*} — request never reached the safety sidecar" dist/bundle.js
+Discord-reader client-side request fault (${code}): ${message} \u2014 request never reached the safety sidecar
+
+$ grep -o "Safety review request failed[^`]*" dist/bundle.js
+Safety review request failed${code !== void 0 ?

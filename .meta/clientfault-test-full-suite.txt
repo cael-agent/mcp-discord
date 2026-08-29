@@ -1,0 +1,1206 @@
+$ npm test
+(The command capture did not independently record the shell's network policy; this log proves the test result, not egress denial.)
+
+
+> mcp-discord-cael@0.1.0 test
+> tsc && node --test --test-force-exit 'dist/**/*.test.js'
+
+TAP version 13
+# Subtest: isSupportedType() handles content-type and extension fallback
+ok 1 - isSupportedType() handles content-type and extension fallback
+  ---
+  duration_ms: 1.02147
+  type: 'test'
+  ...
+# Subtest: isSupportedType() rejects SVG by content type
+ok 2 - isSupportedType() rejects SVG by content type
+  ---
+  duration_ms: 0.170191
+  type: 'test'
+  ...
+# Subtest: isSupportedType() rejects SVG by extension
+ok 3 - isSupportedType() rejects SVG by extension
+  ---
+  duration_ms: 0.116379
+  type: 'test'
+  ...
+# Subtest: isImageFile() identifies image files
+ok 4 - isImageFile() identifies image files
+  ---
+  duration_ms: 0.083104
+  type: 'test'
+  ...
+# Subtest: isImageFile() rejects non-image files
+ok 5 - isImageFile() rejects non-image files
+  ---
+  duration_ms: 0.13128
+  type: 'test'
+  ...
+# Subtest: isImageFile() rejects SVG
+ok 6 - isImageFile() rejects SVG
+  ---
+  duration_ms: 0.058168
+  type: 'test'
+  ...
+# Subtest: sanitizeFilename() normal filename passes through
+ok 7 - sanitizeFilename() normal filename passes through
+  ---
+  duration_ms: 0.130126
+  type: 'test'
+  ...
+# Subtest: sanitizeFilename() strips path traversal and separators
+ok 8 - sanitizeFilename() strips path traversal and separators
+  ---
+  duration_ms: 0.074598
+  type: 'test'
+  ...
+# Subtest: sanitizeFilename() strips null bytes
+ok 9 - sanitizeFilename() strips null bytes
+  ---
+  duration_ms: 0.15711
+  type: 'test'
+  ...
+# Subtest: sanitizeFilename() strips control characters
+ok 10 - sanitizeFilename() strips control characters
+  ---
+  duration_ms: 0.272252
+  type: 'test'
+  ...
+# Subtest: sanitizeFilename() returns unnamed when empty after sanitization
+ok 11 - sanitizeFilename() returns unnamed when empty after sanitization
+  ---
+  duration_ms: 0.088564
+  type: 'test'
+  ...
+# Subtest: sanitizeFilename() truncates long names while preserving extension
+ok 12 - sanitizeFilename() truncates long names while preserving extension
+  ---
+  duration_ms: 0.064356
+  type: 'test'
+  ...
+# Subtest: sanitizeFilename() preserves unicode
+ok 13 - sanitizeFilename() preserves unicode
+  ---
+  duration_ms: 0.076106
+  type: 'test'
+  ...
+# Subtest: formatFileSize() formats bytes, KB, and MB
+ok 14 - formatFileSize() formats bytes, KB, and MB
+  ---
+  duration_ms: 0.050339
+  type: 'test'
+  ...
+# Subtest: validateUrl() accepts Discord CDN hosts
+ok 15 - validateUrl() accepts Discord CDN hosts
+  ---
+  duration_ms: 0.184936
+  type: 'test'
+  ...
+# Subtest: validateUrl() rejects non-Discord hosts
+ok 16 - validateUrl() rejects non-Discord hosts
+  ---
+  duration_ms: 0.212741
+  type: 'test'
+  ...
+# Subtest: validateUrl() rejects malformed URLs
+ok 17 - validateUrl() rejects malformed URLs
+  ---
+  duration_ms: 0.051753
+  type: 'test'
+  ...
+# Subtest: validateMagicBytes() accepts valid PNG header
+ok 18 - validateMagicBytes() accepts valid PNG header
+  ---
+  duration_ms: 0.882984
+  type: 'test'
+  ...
+# Subtest: validateMagicBytes() accepts valid JPEG header
+ok 19 - validateMagicBytes() accepts valid JPEG header
+  ---
+  duration_ms: 0.139215
+  type: 'test'
+  ...
+# Subtest: validateMagicBytes() accepts valid GIF header
+ok 20 - validateMagicBytes() accepts valid GIF header
+  ---
+  duration_ms: 0.043715
+  type: 'test'
+  ...
+# Subtest: validateMagicBytes() accepts valid WebP header
+ok 21 - validateMagicBytes() accepts valid WebP header
+  ---
+  duration_ms: 0.060665
+  type: 'test'
+  ...
+# Subtest: validateMagicBytes() accepts valid BMP header
+ok 22 - validateMagicBytes() accepts valid BMP header
+  ---
+  duration_ms: 0.032818
+  type: 'test'
+  ...
+# Subtest: validateMagicBytes() rejects mismatched PNG header
+ok 23 - validateMagicBytes() rejects mismatched PNG header
+  ---
+  duration_ms: 0.055101
+  type: 'test'
+  ...
+# Subtest: validateMagicBytes() rejects buffer too small for type
+ok 24 - validateMagicBytes() rejects buffer too small for type
+  ---
+  duration_ms: 0.032579
+  type: 'test'
+  ...
+# Subtest: validateMagicBytes() skips unknown content types
+ok 25 - validateMagicBytes() skips unknown content types
+  ---
+  duration_ms: 0.031205
+  type: 'test'
+  ...
+# Subtest: cleanupOldFiles() deletes files older than max age
+ok 26 - cleanupOldFiles() deletes files older than max age
+  ---
+  duration_ms: 13.737897
+  type: 'test'
+  ...
+# Subtest: cleanupOldFiles() skips dotfiles
+ok 27 - cleanupOldFiles() skips dotfiles
+  ---
+  duration_ms: 2.177012
+  type: 'test'
+  ...
+# Subtest: cleanupOldFiles() handles non-existent directory
+ok 28 - cleanupOldFiles() handles non-existent directory
+  ---
+  duration_ms: 0.316071
+  type: 'test'
+  ...
+# Subtest: downloadAttachments() downloads text file and includes textContent
+ok 29 - downloadAttachments() downloads text file and includes textContent
+  ---
+  duration_ms: 14.427344
+  type: 'test'
+  ...
+# Subtest: downloadAttachments() skips unsupported file types
+ok 30 - downloadAttachments() skips unsupported file types
+  ---
+  duration_ms: 1.705686
+  type: 'test'
+  ...
+# Subtest: downloadAttachments() skips oversized files
+ok 31 - downloadAttachments() skips oversized files
+  ---
+  duration_ms: 1.214028
+  type: 'test'
+  ...
+# Subtest: downloadAttachments() handles network errors
+ok 32 - downloadAttachments() handles network errors
+  ---
+  duration_ms: 1.945422
+  type: 'test'
+  ...
+# Subtest: downloadAttachments() handles mixed success and skips
+ok 33 - downloadAttachments() handles mixed success and skips
+  ---
+  duration_ms: 2.895382
+  type: 'test'
+  ...
+# Subtest: downloadAttachments() handles filename collisions with numeric suffixes
+ok 34 - downloadAttachments() handles filename collisions with numeric suffixes
+  ---
+  duration_ms: 4.641301
+  type: 'test'
+  ...
+# Subtest: downloadAttachments() rejects non-Discord CDN URLs
+ok 35 - downloadAttachments() rejects non-Discord CDN URLs
+  ---
+  duration_ms: 1.183363
+  type: 'test'
+  ...
+# Subtest: downloadAttachments() rejects SVG files
+ok 36 - downloadAttachments() rejects SVG files
+  ---
+  duration_ms: 1.220891
+  type: 'test'
+  ...
+# Subtest: downloadAttachments() rejects when actual download exceeds size limit
+ok 37 - downloadAttachments() rejects when actual download exceeds size limit
+  ---
+  duration_ms: 47.219141
+  type: 'test'
+  ...
+# Subtest: downloadAttachments() rejects image with mismatched magic bytes
+ok 38 - downloadAttachments() rejects image with mismatched magic bytes
+  ---
+  duration_ms: 2.347531
+  type: 'test'
+  ...
+# Subtest: downloadAttachments() processes images with sharp and sets isImage
+ok 39 - downloadAttachments() processes images with sharp and sets isImage
+  ---
+  duration_ms: 11.040672
+  type: 'test'
+  ...
+# Subtest: downloadAttachments() resizes large images to max dimension
+ok 40 - downloadAttachments() resizes large images to max dimension
+  ---
+  duration_ms: 22.111639
+  type: 'test'
+  ...
+# Subtest: downloadAttachments() text under 50,000 chars passes through unchanged
+ok 41 - downloadAttachments() text under 50,000 chars passes through unchanged
+  ---
+  duration_ms: 3.508126
+  type: 'test'
+  ...
+# Subtest: downloadAttachments() text exactly 50,000 chars passes through unchanged
+ok 42 - downloadAttachments() text exactly 50,000 chars passes through unchanged
+  ---
+  duration_ms: 2.934658
+  type: 'test'
+  ...
+# Subtest: downloadAttachments() text over 50,000 chars is truncated with correct path
+ok 43 - downloadAttachments() text over 50,000 chars is truncated with correct path
+  ---
+  duration_ms: 2.856804
+  type: 'test'
+  ...
+# Subtest: sidecar failure returns without changing a pre-seeded highwater file
+ok 44 - sidecar failure returns without changing a pre-seeded highwater file
+  ---
+  duration_ms: 7.782381
+  type: 'test'
+  ...
+# Subtest: sidecar success advances highwater to newest ids per channel
+ok 45 - sidecar success advances highwater to newest ids per channel
+  ---
+  duration_ms: 3.442746
+  type: 'test'
+  ...
+# Subtest: failure then retry re-fetches with the same after value
+ok 46 - failure then retry re-fetches with the same after value
+  ---
+  duration_ms: 3.278936
+  type: 'test'
+  ...
+# Subtest: no new messages returns the exact empty response and leaves state absent
+ok 47 - no new messages returns the exact empty response and leaves state absent
+  ---
+  duration_ms: 1.528128
+  type: 'test'
+  ...
+# Subtest: first run with messages creates highwater file with newest ids
+ok 48 - first run with messages creates highwater file with newest ids
+  ---
+  duration_ms: 2.973089
+  type: 'test'
+  ...
+# Subtest: sidecar failure response is returned verbatim
+ok 49 - sidecar failure response is returned verbatim
+  ---
+  duration_ms: 1.525808
+  type: 'test'
+  ...
+# Subtest: sanitize input format pins headers, msg ids, self tag, and attachments
+ok 50 - sanitize input format pins headers, msg ids, self tag, and attachments
+  ---
+  duration_ms: 3.48159
+  type: 'test'
+  ...
+# Subtest: since param uses synthetic snowflake after with limit 100
+ok 51 - since param uses synthetic snowflake after with limit 100
+  ---
+  duration_ms: 2.222791
+  type: 'test'
+  ...
+# Subtest: explicit channel scans only that channel while all-channel mode excludes logs
+ok 52 - explicit channel scans only that channel while all-channel mode excludes logs
+  ---
+  duration_ms: 3.295609
+  type: 'test'
+  ...
+# Subtest: messageChannelCache is populated even when sidecar fails
+ok 53 - messageChannelCache is populated even when sidecar fails
+  ---
+  duration_ms: 1.126552
+  type: 'test'
+  ...
+# Subtest: resolveChannelId maps names case-insensitively
+ok 54 - resolveChannelId maps names case-insensitively
+  ---
+  duration_ms: 0.676928
+  type: 'test'
+  ...
+# Subtest: resolveChannelId passes through snowflake IDs
+ok 55 - resolveChannelId passes through snowflake IDs
+  ---
+  duration_ms: 0.125571
+  type: 'test'
+  ...
+# Subtest: resolveChannelId resolves general-cael alias
+ok 56 - resolveChannelId resolves general-cael alias
+  ---
+  duration_ms: 0.045608
+  type: 'test'
+  ...
+# Subtest: resolveChannelId throws for unknown names with available list
+ok 57 - resolveChannelId throws for unknown names with available list
+  ---
+  duration_ms: 0.227393
+  type: 'test'
+  ...
+# Subtest: resolveChannelId throws for empty string
+ok 58 - resolveChannelId throws for empty string
+  ---
+  duration_ms: 0.07306
+  type: 'test'
+  ...
+# Subtest: clampMessageLimit uses default value when omitted
+ok 59 - clampMessageLimit uses default value when omitted
+  ---
+  duration_ms: 0.171845
+  type: 'test'
+  ...
+# Subtest: clampMessageLimit clamps values above max
+ok 60 - clampMessageLimit clamps values above max
+  ---
+  duration_ms: 0.053646
+  type: 'test'
+  ...
+# Subtest: clampMessageLimit rejects zero and negative values
+ok 61 - clampMessageLimit rejects zero and negative values
+  ---
+  duration_ms: 0.075274
+  type: 'test'
+  ...
+# Subtest: clampMessageLimit floors non-integer values
+ok 62 - clampMessageLimit floors non-integer values
+  ---
+  duration_ms: 0.152327
+  type: 'test'
+  ...
+# Subtest: MentionTracker stores and returns mentions
+ok 63 - MentionTracker stores and returns mentions
+  ---
+  duration_ms: 0.664034
+  type: 'test'
+  ...
+# Subtest: MentionTracker filters by since timestamp
+ok 64 - MentionTracker filters by since timestamp
+  ---
+  duration_ms: 0.400121
+  type: 'test'
+  ...
+# Subtest: MentionTracker auto-cleans mentions older than max age
+ok 65 - MentionTracker auto-cleans mentions older than max age
+  ---
+  duration_ms: 0.077354
+  type: 'test'
+  ...
+# Subtest: MentionTracker returns empty list when no mentions exist
+ok 66 - MentionTracker returns empty list when no mentions exist
+  ---
+  duration_ms: 0.032713
+  type: 'test'
+  ...
+# Subtest: parseHexColor supports values with and without hash
+ok 67 - parseHexColor supports values with and without hash
+  ---
+  duration_ms: 0.095738
+  type: 'test'
+  ...
+# Subtest: parseHexColor throws on invalid values
+ok 68 - parseHexColor throws on invalid values
+  ---
+  duration_ms: 0.055922
+  type: 'test'
+  ...
+# Subtest: validateButtons accepts valid single-button input
+ok 69 - validateButtons accepts valid single-button input
+  ---
+  duration_ms: 0.093066
+  type: 'test'
+  ...
+# Subtest: validateButtons accepts up to five buttons
+ok 70 - validateButtons accepts up to five buttons
+  ---
+  duration_ms: 0.056328
+  type: 'test'
+  ...
+# Subtest: validateButtons throws on empty array
+ok 71 - validateButtons throws on empty array
+  ---
+  duration_ms: 0.050994
+  type: 'test'
+  ...
+# Subtest: validateButtons throws when more than five buttons are provided
+ok 72 - validateButtons throws when more than five buttons are provided
+  ---
+  duration_ms: 0.037487
+  type: 'test'
+  ...
+# Subtest: validateButtons throws on duplicate IDs
+ok 73 - validateButtons throws on duplicate IDs
+  ---
+  duration_ms: 0.035437
+  type: 'test'
+  ...
+# Subtest: validateButtons throws on missing or empty id
+ok 74 - validateButtons throws on missing or empty id
+  ---
+  duration_ms: 0.101052
+  type: 'test'
+  ...
+# Subtest: validateButtons throws on missing or empty label
+ok 75 - validateButtons throws on missing or empty label
+  ---
+  duration_ms: 0.135367
+  type: 'test'
+  ...
+# Subtest: validateButtons throws when id exceeds 100 characters
+ok 76 - validateButtons throws when id exceeds 100 characters
+  ---
+  duration_ms: 0.097672
+  type: 'test'
+  ...
+# Subtest: validateButtons throws when label exceeds 80 characters
+ok 77 - validateButtons throws when label exceeds 80 characters
+  ---
+  duration_ms: 0.117169
+  type: 'test'
+  ...
+# Subtest: validateButtons throws on invalid style
+ok 78 - validateButtons throws on invalid style
+  ---
+  duration_ms: 0.060384
+  type: 'test'
+  ...
+# Subtest: validateEmbedFields returns undefined when omitted
+ok 79 - validateEmbedFields returns undefined when omitted
+  ---
+  duration_ms: 0.079028
+  type: 'test'
+  ...
+# Subtest: validateEmbedFields accepts valid fields
+ok 80 - validateEmbedFields accepts valid fields
+  ---
+  duration_ms: 0.115007
+  type: 'test'
+  ...
+# Subtest: validateEmbedFields throws on non-array input
+ok 81 - validateEmbedFields throws on non-array input
+  ---
+  duration_ms: 0.056318
+  type: 'test'
+  ...
+# Subtest: validateEmbedFields throws when more than 25 fields
+ok 82 - validateEmbedFields throws when more than 25 fields
+  ---
+  duration_ms: 0.095166
+  type: 'test'
+  ...
+# Subtest: validateEmbedFields throws on missing or empty name
+ok 83 - validateEmbedFields throws on missing or empty name
+  ---
+  duration_ms: 0.062547
+  type: 'test'
+  ...
+# Subtest: validateEmbedFields throws on missing or empty value
+ok 84 - validateEmbedFields throws on missing or empty value
+  ---
+  duration_ms: 0.144684
+  type: 'test'
+  ...
+# Subtest: validateEmbedFields throws when name exceeds 256 characters
+ok 85 - validateEmbedFields throws when name exceeds 256 characters
+  ---
+  duration_ms: 0.117731
+  type: 'test'
+  ...
+# Subtest: validateEmbedFields throws when value exceeds 1024 characters
+ok 86 - validateEmbedFields throws when value exceeds 1024 characters
+  ---
+  duration_ms: 0.103589
+  type: 'test'
+  ...
+# Subtest: validateEmbedFields throws when inline is not a boolean
+ok 87 - validateEmbedFields throws when inline is not a boolean
+  ---
+  duration_ms: 0.046689
+  type: 'test'
+  ...
+# Subtest: parseOptionalTimestamp returns numeric timestamp for valid ISO string
+ok 88 - parseOptionalTimestamp returns numeric timestamp for valid ISO string
+  ---
+  duration_ms: 0.062858
+  type: 'test'
+  ...
+# Subtest: parseOptionalTimestamp returns undefined when omitted
+ok 89 - parseOptionalTimestamp returns undefined when omitted
+  ---
+  duration_ms: 0.021806
+  type: 'test'
+  ...
+# Subtest: parseOptionalTimestamp throws on invalid string
+ok 90 - parseOptionalTimestamp throws on invalid string
+  ---
+  duration_ms: 0.030707
+  type: 'test'
+  ...
+# Subtest: splitMessage returns single-element array for short text
+ok 91 - splitMessage returns single-element array for short text
+  ---
+  duration_ms: 0.058761
+  type: 'test'
+  ...
+# Subtest: splitMessage returns single-element array for text exactly at limit
+ok 92 - splitMessage returns single-element array for text exactly at limit
+  ---
+  duration_ms: 0.032006
+  type: 'test'
+  ...
+# Subtest: splitMessage splits at newline when available
+ok 93 - splitMessage splits at newline when available
+  ---
+  duration_ms: 0.090124
+  type: 'test'
+  ...
+# Subtest: splitMessage splits at space when no newline available
+ok 94 - splitMessage splits at space when no newline available
+  ---
+  duration_ms: 0.112605
+  type: 'test'
+  ...
+# Subtest: splitMessage hard splits when no whitespace available
+ok 95 - splitMessage hard splits when no whitespace available
+  ---
+  duration_ms: 0.123523
+  type: 'test'
+  ...
+# Subtest: splitMessage strips leading newline from remainder
+ok 96 - splitMessage strips leading newline from remainder
+  ---
+  duration_ms: 0.124605
+  type: 'test'
+  ...
+# Subtest: splitMessage handles multiple splits across many chunks
+ok 97 - splitMessage handles multiple splits across many chunks
+  ---
+  duration_ms: 0.172323
+  type: 'test'
+  ...
+# Subtest: splitMessage respects custom maxLength
+ok 98 - splitMessage respects custom maxLength
+  ---
+  duration_ms: 0.768164
+  type: 'test'
+  ...
+# Subtest: loadHighwater returns empty state when file does not exist
+ok 99 - loadHighwater returns empty state when file does not exist
+  ---
+  duration_ms: 6.349407
+  type: 'test'
+  ...
+# Subtest: loadHighwater returns parsed state from valid JSON file
+ok 100 - loadHighwater returns parsed state from valid JSON file
+  ---
+  duration_ms: 3.075432
+  type: 'test'
+  ...
+# Subtest: loadHighwater returns empty state when file contains invalid JSON
+ok 101 - loadHighwater returns empty state when file contains invalid JSON
+  ---
+  duration_ms: 2.22386
+  type: 'test'
+  ...
+# Subtest: loadHighwater returns empty state when JSON has wrong shape
+ok 102 - loadHighwater returns empty state when JSON has wrong shape
+  ---
+  duration_ms: 2.357263
+  type: 'test'
+  ...
+# Subtest: loadHighwater returns empty state when channels is an array
+ok 103 - loadHighwater returns empty state when channels is an array
+  ---
+  duration_ms: 2.526942
+  type: 'test'
+  ...
+# Subtest: saveHighwater creates parent directories and writes valid JSON
+ok 104 - saveHighwater creates parent directories and writes valid JSON
+  ---
+  duration_ms: 5.070438
+  type: 'test'
+  ...
+# Subtest: saveHighwater overwrites existing file
+ok 105 - saveHighwater overwrites existing file
+  ---
+  duration_ms: 2.778511
+  type: 'test'
+  ...
+# Subtest: getChannelHighwater returns undefined for unknown channel
+ok 106 - getChannelHighwater returns undefined for unknown channel
+  ---
+  duration_ms: 0.167477
+  type: 'test'
+  ...
+# Subtest: getChannelHighwater returns stored snowflake for known channel
+ok 107 - getChannelHighwater returns stored snowflake for known channel
+  ---
+  duration_ms: 0.097517
+  type: 'test'
+  ...
+# Subtest: updateMultipleHighwaters merges updates without mutating original
+ok 108 - updateMultipleHighwaters merges updates without mutating original
+  ---
+  duration_ms: 0.151754
+  type: 'test'
+  ...
+# Subtest: getDefaultStatePath returns env var when set
+ok 109 - getDefaultStatePath returns env var when set
+  ---
+  duration_ms: 0.195709
+  type: 'test'
+  ...
+# Subtest: getDefaultStatePath returns default when env var is not set
+ok 110 - getDefaultStatePath returns default when env var is not set
+  ---
+  duration_ms: 0.132466
+  type: 'test'
+  ...
+# Subtest: getDefaultPreviewStatePath returns env var when set
+ok 111 - getDefaultPreviewStatePath returns env var when set
+  ---
+  duration_ms: 0.095208
+  type: 'test'
+  ...
+# Subtest: getDefaultPreviewStatePath returns default when env var is not set
+ok 112 - getDefaultPreviewStatePath returns default when env var is not set
+  ---
+  duration_ms: 0.062567
+  type: 'test'
+  ...
+# Subtest: requireDiscordConnection allows calls when Discord is ready
+ok 113 - requireDiscordConnection allows calls when Discord is ready
+  ---
+  duration_ms: 0.459044
+  type: 'test'
+  ...
+# Subtest: requireDiscordConnection throws while Discord is still connecting
+ok 114 - requireDiscordConnection throws while Discord is still connecting
+  ---
+  duration_ms: 0.203661
+  type: 'test'
+  ...
+# Subtest: requireDiscordConnection throws when Discord is in error state
+ok 115 - requireDiscordConnection throws when Discord is in error state
+  ---
+  duration_ms: 0.101124
+  type: 'test'
+  ...
+# Subtest: requireDiscordConnection detects timeout and transitions to error state
+ok 116 - requireDiscordConnection detects timeout and transitions to error state
+  ---
+  duration_ms: 0.112545
+  type: 'test'
+  ...
+# Subtest: main sets up MCP transport before starting Discord login
+ok 117 - main sets up MCP transport before starting Discord login
+  ---
+  duration_ms: 0.471619
+  type: 'test'
+  ...
+# Subtest: formatMessagesText includes message IDs in output
+ok 118 - formatMessagesText includes message IDs in output
+  ---
+  duration_ms: 0.183969
+  type: 'test'
+  ...
+# Subtest: set and get return correct channelId
+ok 119 - set and get return correct channelId
+  ---
+  duration_ms: 0.700917
+  type: 'test'
+  ...
+# Subtest: get returns undefined for unknown messageId
+ok 120 - get returns undefined for unknown messageId
+  ---
+  duration_ms: 0.104795
+  type: 'test'
+  ...
+# Subtest: setMany populates multiple entries
+ok 121 - setMany populates multiple entries
+  ---
+  duration_ms: 0.681951
+  type: 'test'
+  ...
+# Subtest: duplicate set does not add duplicate entry
+ok 122 - duplicate set does not add duplicate entry
+  ---
+  duration_ms: 0.08533
+  type: 'test'
+  ...
+# Subtest: evicts oldest entries when exceeding max size
+ok 123 - evicts oldest entries when exceeding max size
+  ---
+  duration_ms: 0.115682
+  type: 'test'
+  ...
+# Subtest: size property is accurate
+ok 124 - size property is accurate
+  ---
+  duration_ms: 0.097912
+  type: 'test'
+  ...
+# Subtest: runPreviewDiscord makes zero sidecar calls for a happy-path preview
+ok 125 - runPreviewDiscord makes zero sidecar calls for a happy-path preview
+  ---
+  duration_ms: 8.600325
+  type: 'test'
+  ...
+# Subtest: preview-discord build output does not statically import safety-client
+ok 126 - preview-discord build output does not statically import safety-client
+  ---
+  duration_ms: 7.703184
+  type: 'test'
+  ...
+# Subtest: bot messages are cached but suppressed from preview output with a hidden-count footer
+ok 127 - bot messages are cached but suppressed from preview output with a hidden-count footer
+  ---
+  duration_ms: 3.00261
+  type: 'test'
+  ...
+# Subtest: self-authored bot messages are suppressed but still cached
+ok 128 - self-authored bot messages are suppressed but still cached
+  ---
+  duration_ms: 3.094503
+  type: 'test'
+  ...
+# Subtest: logs channel is excluded when channel is omitted
+ok 129 - logs channel is excluded when channel is omitted
+  ---
+  duration_ms: 3.758344
+  type: 'test'
+  ...
+# Subtest: single-channel mode only fetches the selected channel and ignores logs exclusion
+ok 130 - single-channel mode only fetches the selected channel and ignores logs exclusion
+  ---
+  duration_ms: 2.813521
+  type: 'test'
+  ...
+# Subtest: since override uses a synthetic snowflake floor without regressing stored highwater
+ok 131 - since override uses a synthetic snowflake floor without regressing stored highwater
+  ---
+  duration_ms: 3.15238
+  type: 'test'
+  ...
+# Subtest: limit values above 10 are clamped to 10 visible items per channel
+ok 132 - limit values above 10 are clamped to 10 visible items per channel
+  ---
+  duration_ms: 2.479067
+  type: 'test'
+  ...
+# Subtest: empty result returns the exact no-messages text
+ok 133 - empty result returns the exact no-messages text
+  ---
+  duration_ms: 1.534855
+  type: 'test'
+  ...
+# Subtest: preview highwater persists newest ids per channel across calls
+ok 134 - preview highwater persists newest ids per channel across calls
+  ---
+  duration_ms: 4.316512
+  type: 'test'
+  ...
+# Subtest: preview highwater is unchanged when build output throws
+ok 135 - preview highwater is unchanged when build output throws
+  ---
+  duration_ms: 3.068328
+  type: 'test'
+  ...
+# Subtest: runPreviewDiscord enforces the 10k total output cap and drops channels from the end
+ok 136 - runPreviewDiscord enforces the 10k total output cap and drops channels from the end
+  ---
+  duration_ms: 4.682863
+  type: 'test'
+  ...
+# Subtest: channel fetch errors are skipped and do not crash the preview
+ok 137 - channel fetch errors are skipped and do not crash the preview
+  ---
+  duration_ms: 2.43701
+  type: 'test'
+  ...
+# Subtest: reply previews render the replied username when mentions.repliedUser is available
+ok 138 - reply previews render the replied username when mentions.repliedUser is available
+  ---
+  duration_ms: 2.224212
+  type: 'test'
+  ...
+# (node:2721303) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: preview discord constants match the preview-first contract
+ok 139 - preview discord constants match the preview-first contract
+  ---
+  duration_ms: 0.595009
+  type: 'test'
+  ...
+# Subtest: isBotMessage returns true for author.bot
+ok 140 - isBotMessage returns true for author.bot
+  ---
+  duration_ms: 0.12918
+  type: 'test'
+  ...
+# Subtest: isBotMessage returns true for webhook messages
+ok 141 - isBotMessage returns true for webhook messages
+  ---
+  duration_ms: 0.051389
+  type: 'test'
+  ...
+# Subtest: isBotMessage returns false for human non-webhook messages
+ok 142 - isBotMessage returns false for human non-webhook messages
+  ---
+  duration_ms: 0.054228
+  type: 'test'
+  ...
+# Subtest: truncatePreviewText collapses whitespace and trims
+ok 143 - truncatePreviewText collapses whitespace and trims
+  ---
+  duration_ms: 0.166302
+  type: 'test'
+  ...
+# Subtest: truncatePreviewText truncates with an ellipsis at the max length
+ok 144 - truncatePreviewText truncates with an ellipsis at the max length
+  ---
+  duration_ms: 0.063877
+  type: 'test'
+  ...
+# Subtest: truncatePreviewText passes short strings through unchanged after normalization
+ok 145 - truncatePreviewText passes short strings through unchanged after normalization
+  ---
+  duration_ms: 0.081191
+  type: 'test'
+  ...
+# Subtest: truncatePreviewText renders placeholder for empty or whitespace-only input
+ok 146 - truncatePreviewText renders placeholder for empty or whitespace-only input
+  ---
+  duration_ms: 0.047667
+  type: 'test'
+  ...
+# Subtest: truncateAuthor leaves short usernames unchanged
+ok 147 - truncateAuthor leaves short usernames unchanged
+  ---
+  duration_ms: 0.182648
+  type: 'test'
+  ...
+# Subtest: truncateAuthor truncates usernames longer than 16 chars with an ellipsis
+ok 148 - truncateAuthor truncates usernames longer than 16 chars with an ellipsis
+  ---
+  duration_ms: 0.251809
+  type: 'test'
+  ...
+# Subtest: formatPreviewMessage renders a plain text line with the expected field spacing
+ok 149 - formatPreviewMessage renders a plain text line with the expected field spacing
+  ---
+  duration_ms: 0.726622
+  type: 'test'
+  ...
+# Subtest: formatPreviewMessage appends the attachment icon when present
+ok 150 - formatPreviewMessage appends the attachment icon when present
+  ---
+  duration_ms: 0.839036
+  type: 'test'
+  ...
+# Subtest: formatPreviewMessage appends reply metadata with username when available
+ok 151 - formatPreviewMessage appends reply metadata with username when available
+  ---
+  duration_ms: 0.196437
+  type: 'test'
+  ...
+# Subtest: formatPreviewMessage appends a bare reply marker when the replied username is unavailable
+ok 152 - formatPreviewMessage appends a bare reply marker when the replied username is unavailable
+  ---
+  duration_ms: 0.149768
+  type: 'test'
+  ...
+# Subtest: formatPreviewMessage renders placeholder text when message content is empty
+ok 153 - formatPreviewMessage renders placeholder text when message content is empty
+  ---
+  duration_ms: 0.120996
+  type: 'test'
+  ...
+# Subtest: formatPreviewMessage truncates long content to 100 characters with an ellipsis
+ok 154 - formatPreviewMessage truncates long content to 100 characters with an ellipsis
+  ---
+  duration_ms: 0.108019
+  type: 'test'
+  ...
+# Subtest: formatPreviewMessage truncates long author usernames to 16 characters with an ellipsis
+ok 155 - formatPreviewMessage truncates long author usernames to 16 characters with an ellipsis
+  ---
+  duration_ms: 0.133318
+  type: 'test'
+  ...
+# Subtest: formatPreviewMessage collapses internal whitespace onto a single line
+ok 156 - formatPreviewMessage collapses internal whitespace onto a single line
+  ---
+  duration_ms: 0.108279
+  type: 'test'
+  ...
+# Subtest: orderChannelGroups sorts groups by newest human message timestamp descending
+ok 157 - orderChannelGroups sorts groups by newest human message timestamp descending
+  ---
+  duration_ms: 0.404291
+  type: 'test'
+  ...
+# Subtest: buildPreviewOutput returns the no-messages string for an empty group list
+ok 158 - buildPreviewOutput returns the no-messages string for an empty group list
+  ---
+  duration_ms: 0.0522
+  type: 'test'
+  ...
+# Subtest: buildPreviewOutput renders grouped blocks with the expected header and blank-line separators
+ok 159 - buildPreviewOutput renders grouped blocks with the expected header and blank-line separators
+  ---
+  duration_ms: 0.502682
+  type: 'test'
+  ...
+# Subtest: buildPreviewOutput appends a per-channel overflow footer when visible items were truncated
+ok 160 - buildPreviewOutput appends a per-channel overflow footer when visible items were truncated
+  ---
+  duration_ms: 0.414533
+  type: 'test'
+  ...
+# Subtest: buildPreviewOutput appends a bot suppression footer when bots were hidden
+ok 161 - buildPreviewOutput appends a bot suppression footer when bots were hidden
+  ---
+  duration_ms: 0.391595
+  type: 'test'
+  ...
+# Subtest: buildPreviewOutput renders overflow before the bot-suppression footer when both apply
+ok 162 - buildPreviewOutput renders overflow before the bot-suppression footer when both apply
+  ---
+  duration_ms: 0.317849
+  type: 'test'
+  ...
+# Subtest: buildPreviewOutput enforces the total size cap by dropping channels from the end and appending a footer
+ok 163 - buildPreviewOutput enforces the total size cap by dropping channels from the end and appending a footer
+  ---
+  duration_ms: 1.227691
+  type: 'test'
+  ...
+# Subtest: buildPreviewOutput skips channels that have no visible human messages even if bot posts were hidden
+ok 164 - buildPreviewOutput skips channels that have no visible human messages even if bot posts were hidden
+  ---
+  duration_ms: 0.273822
+  type: 'test'
+  ...
+# (node:2721304) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: formatRelativeTime returns "just now" for timestamps under one minute
+ok 165 - formatRelativeTime returns "just now" for timestamps under one minute
+  ---
+  duration_ms: 1.72065
+  type: 'test'
+  ...
+# Subtest: formatRelativeTime returns minutes ago for timestamps under one hour
+ok 166 - formatRelativeTime returns minutes ago for timestamps under one hour
+  ---
+  duration_ms: 0.221456
+  type: 'test'
+  ...
+# Subtest: formatRelativeTime returns hours ago for timestamps under one day
+ok 167 - formatRelativeTime returns hours ago for timestamps under one day
+  ---
+  duration_ms: 0.195667
+  type: 'test'
+  ...
+# Subtest: formatRelativeTime returns "yesterday" for one day old timestamps
+ok 168 - formatRelativeTime returns "yesterday" for one day old timestamps
+  ---
+  duration_ms: 0.206742
+  type: 'test'
+  ...
+# Subtest: formatRelativeTime returns days ago for two to six day old timestamps
+ok 169 - formatRelativeTime returns days ago for two to six day old timestamps
+  ---
+  duration_ms: 0.549848
+  type: 'test'
+  ...
+# Subtest: formatRelativeTime returns short date for timestamps older than one week
+ok 170 - formatRelativeTime returns short date for timestamps older than one week
+  ---
+  duration_ms: 0.238385
+  type: 'test'
+  ...
+# Subtest: formatRelativeTime accepts both string and Date inputs
+ok 171 - formatRelativeTime accepts both string and Date inputs
+  ---
+  duration_ms: 0.12189
+  type: 'test'
+  ...
+# Subtest: DEFAULT_SAFETY_TIMEOUT_MS is pinned to the preview-first timeout default
+ok 172 - DEFAULT_SAFETY_TIMEOUT_MS is pinned to the preview-first timeout default
+  ---
+  duration_ms: 0.465653
+  type: 'test'
+  ...
+# Subtest: client fault: nested UND_ERR_INVALID_ARG blames this client, not the sidecar
+ok 173 - client fault: nested UND_ERR_INVALID_ARG blames this client, not the sidecar
+  ---
+  duration_ms: 0.277077
+  type: 'test'
+  ...
+# Subtest: client fault: every CLIENT_FAULT code composes the same client-locus string
+ok 174 - client fault: every CLIENT_FAULT code composes the same client-locus string
+  ---
+  duration_ms: 0.129772
+  type: 'test'
+  ...
+# Subtest: timeout: our own AbortController firing keeps the payload/elapsed string
+ok 175 - timeout: our own AbortController firing keeps the payload/elapsed string
+  ---
+  duration_ms: 0.082564
+  type: 'test'
+  ...
+# Subtest: timeout: the abort signal outranks a nested unreachable code
+ok 176 - timeout: the abort signal outranks a nested unreachable code
+  ---
+  duration_ms: 0.04645
+  type: 'test'
+  ...
+# Subtest: timeout: every transport timeout code still names the sidecar as mid-processing
+ok 177 - timeout: every transport timeout code still names the sidecar as mid-processing
+  ---
+  duration_ms: 0.082626
+  type: 'test'
+  ...
+# Subtest: unreachable: every connect/DNS code still names the sidecar as unreachable
+ok 178 - unreachable: every connect/DNS code still names the sidecar as unreachable
+  ---
+  duration_ms: 0.090789
+  type: 'test'
+  ...
+# Subtest: fallback: UND_ERR_SOCKET is locus-neutral — it blames neither the sidecar nor the client
+ok 179 - fallback: UND_ERR_SOCKET is locus-neutral — it blames neither the sidecar nor the client
+  ---
+  duration_ms: 0.085132
+  type: 'test'
+  ...
+# Subtest: fallback: an error with no code anywhere keeps the optional-code shape
+ok 180 - fallback: an error with no code anywhere keeps the optional-code shape
+  ---
+  duration_ms: 0.176357
+  type: 'test'
+  ...
+# Subtest: fallback: codes excluded from CLIENT_FAULT stay neutral rather than blaming the client
+ok 181 - fallback: codes excluded from CLIENT_FAULT stay neutral rather than blaming the client
+  ---
+  duration_ms: 0.217972
+  type: 'test'
+  ...
+# Subtest: a non-Error throw still renders as unknown
+ok 182 - a non-Error throw still renders as unknown
+  ---
+  duration_ms: 0.070574
+  type: 'test'
+  ...
+# Subtest: cause walking finds a code four levels deep but gives up beyond the depth ceiling
+ok 183 - cause walking finds a code four levels deep but gives up beyond the depth ceiling
+  ---
+  duration_ms: 0.094865
+  type: 'test'
+  ...
+# (node:2721324) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: sanitize() sends correct request to /sanitize endpoint
+ok 184 - sanitize() sends correct request to /sanitize endpoint
+  ---
+  duration_ms: 6.001816
+  type: 'test'
+  ...
+# Subtest: sanitize() returns data on success
+ok 185 - sanitize() returns data on success
+  ---
+  duration_ms: 1.079393
+  type: 'test'
+  ...
+# Subtest: sanitize() returns error on sidecar failure
+ok 186 - sanitize() returns error on sidecar failure
+  ---
+  duration_ms: 0.975224
+  type: 'test'
+  ...
+# Subtest: sanitize() returns error when sidecar is unreachable
+ok 187 - sanitize() returns error when sidecar is unreachable
+  ---
+  duration_ms: 0.50797
+  type: 'test'
+  ...
+# Subtest: formatMessagesText() formats messages correctly
+ok 188 - formatMessagesText() formats messages correctly
+  ---
+  duration_ms: 4.645342
+  type: 'test'
+  ...
+# Subtest: formatMessagesText() returns empty string for empty array
+ok 189 - formatMessagesText() returns empty string for empty array
+  ---
+  duration_ms: 0.14291
+  type: 'test'
+  ...
+# Subtest: formatMessagesText() includes attachment info
+ok 190 - formatMessagesText() includes attachment info
+  ---
+  duration_ms: 0.28289
+  type: 'test'
+  ...
+# Subtest: formatMentionsText() formats mentions correctly
+ok 191 - formatMentionsText() formats mentions correctly
+  ---
+  duration_ms: 0.353888
+  type: 'test'
+  ...
+# Subtest: formatMentionsText() returns empty string for empty array
+ok 192 - formatMentionsText() returns empty string for empty array
+  ---
+  duration_ms: 0.131136
+  type: 'test'
+  ...
+# Subtest: sanitizeAndFormat() returns sanitized data on success
+ok 193 - sanitizeAndFormat() returns sanitized data on success
+  ---
+  duration_ms: 0.762864
+  type: 'test'
+  ...
+# Subtest: sanitizeAndFormat() returns error text when sidecar returns error
+ok 194 - sanitizeAndFormat() returns error text when sidecar returns error
+  ---
+  duration_ms: 0.420864
+  type: 'test'
+  ...
+# Subtest: sanitizeAndFormat() returns error when sidecar unreachable
+ok 195 - sanitizeAndFormat() returns error when sidecar unreachable
+  ---
+  duration_ms: 0.361516
+  type: 'test'
+  ...
+# Subtest: fail-closed: raw content never returned on sidecar failure
+ok 196 - fail-closed: raw content never returned on sidecar failure
+  ---
+  duration_ms: 0.153333
+  type: 'test'
+  ...
+# Subtest: tools array includes preview_discord as the final entry with the expected schema
+ok 197 - tools array includes preview_discord as the final entry with the expected schema
+  ---
+  duration_ms: 0.784624
+  type: 'test'
+  ...
+1..197
+# tests 197
+# suites 0
+# pass 197
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 13957.368553
+npm test exit=0

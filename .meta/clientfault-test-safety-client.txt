@@ -1,0 +1,87 @@
+$ npx tsc
+tsc exit=0
+
+$ node --test --test-force-exit dist/safety-client.test.js
+TAP version 13
+# Subtest: DEFAULT_SAFETY_TIMEOUT_MS is pinned to the preview-first timeout default
+ok 1 - DEFAULT_SAFETY_TIMEOUT_MS is pinned to the preview-first timeout default
+  ---
+  duration_ms: 0.562565
+  type: 'test'
+  ...
+# Subtest: client fault: nested UND_ERR_INVALID_ARG blames this client, not the sidecar
+ok 2 - client fault: nested UND_ERR_INVALID_ARG blames this client, not the sidecar
+  ---
+  duration_ms: 0.321913
+  type: 'test'
+  ...
+# Subtest: client fault: every CLIENT_FAULT code composes the same client-locus string
+ok 3 - client fault: every CLIENT_FAULT code composes the same client-locus string
+  ---
+  duration_ms: 0.137197
+  type: 'test'
+  ...
+# Subtest: timeout: our own AbortController firing keeps the payload/elapsed string
+ok 4 - timeout: our own AbortController firing keeps the payload/elapsed string
+  ---
+  duration_ms: 0.10144
+  type: 'test'
+  ...
+# Subtest: timeout: the abort signal outranks a nested unreachable code
+ok 5 - timeout: the abort signal outranks a nested unreachable code
+  ---
+  duration_ms: 0.0486
+  type: 'test'
+  ...
+# Subtest: timeout: every transport timeout code still names the sidecar as mid-processing
+ok 6 - timeout: every transport timeout code still names the sidecar as mid-processing
+  ---
+  duration_ms: 0.085385
+  type: 'test'
+  ...
+# Subtest: unreachable: every connect/DNS code still names the sidecar as unreachable
+ok 7 - unreachable: every connect/DNS code still names the sidecar as unreachable
+  ---
+  duration_ms: 0.092119
+  type: 'test'
+  ...
+# Subtest: fallback: UND_ERR_SOCKET is locus-neutral — it blames neither the sidecar nor the client
+ok 8 - fallback: UND_ERR_SOCKET is locus-neutral — it blames neither the sidecar nor the client
+  ---
+  duration_ms: 0.085801
+  type: 'test'
+  ...
+# Subtest: fallback: an error with no code anywhere keeps the optional-code shape
+ok 9 - fallback: an error with no code anywhere keeps the optional-code shape
+  ---
+  duration_ms: 0.174679
+  type: 'test'
+  ...
+# Subtest: fallback: codes excluded from CLIENT_FAULT stay neutral rather than blaming the client
+ok 10 - fallback: codes excluded from CLIENT_FAULT stay neutral rather than blaming the client
+  ---
+  duration_ms: 0.202558
+  type: 'test'
+  ...
+# Subtest: a non-Error throw still renders as unknown
+ok 11 - a non-Error throw still renders as unknown
+  ---
+  duration_ms: 0.080252
+  type: 'test'
+  ...
+# Subtest: cause walking finds a code four levels deep but gives up beyond the depth ceiling
+ok 12 - cause walking finds a code four levels deep but gives up beyond the depth ceiling
+  ---
+  duration_ms: 0.347205
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1896.167475
+exit=0

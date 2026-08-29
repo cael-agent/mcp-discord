@@ -1,0 +1,17 @@
+$ git diff --check
+exit=0
+
+$ git diff --stat
+ src/safety-client.test.ts | 160 +++++++++++++++++++++++++++++++++++++++++++++-
+ src/safety-client.ts      |  96 ++++++++++++++++++++++------
+ src/safety.test.ts        |  18 ++++--
+ 3 files changed, 246 insertions(+), 28 deletions(-)
+
+$ git status --porcelain
+ M src/safety-client.test.ts
+ M src/safety-client.ts
+ M src/safety.test.ts
+?? .meta/
+
+$ git rev-parse HEAD (uncommitted; nothing committed this phase)
+d5aff34a57014e98240309cebfd8db59d6791d77

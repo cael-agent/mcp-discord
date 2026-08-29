@@ -1,0 +1,12 @@
+$ npm run build
+
+> mcp-discord-cael@0.1.0 build
+> tsc && node esbuild.config.mjs
+
+Bundle created: dist/bundle.js
+npm run build exit=0
+
+$ ls -l dist/bundle.js dist/safety-client.js dist/safety-client.d.ts
+-rwxrwxrwx 1 jwigg jwigg 5718821 Aug 28 21:50 dist/bundle.js
+-rwxrwxrwx 1 jwigg jwigg    1948 Aug 28 21:50 dist/safety-client.d.ts
+-rwxrwxrwx 1 jwigg jwigg    6595 Aug 28 21:50 dist/safety-client.js
