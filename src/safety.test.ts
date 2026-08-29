@@ -1,18 +1,22 @@
 import assert from 'node:assert/strict';
 import test, { type TestContext } from 'node:test';
 
+import { Response } from 'undici';
+
 import type { TrackedMention } from './helpers.js';
 import { formatMentionsText, formatMessagesText, sanitizeAndFormat } from './index.js';
-import { sanitize } from './safety-client.js';
+import { __setSidecarFetchForTests, sanitize } from './safety-client.js';
 
+// safety-client.ts calls undici's `fetch`, which lives in a different realm from
+// globalThis.fetch: reassigning the global does not intercept it. Swap the
+// module's own transport seam instead, and always restore it afterwards.
 function setMockFetch(
   t: TestContext,
-  impl: typeof fetch
+  impl: Parameters<typeof __setSidecarFetchForTests>[0]
 ): void {
-  const originalFetch = global.fetch;
-  global.fetch = impl;
+  const restore = __setSidecarFetchForTests(impl);
   t.after(() => {
-    global.fetch = originalFetch;
+    restore();
   });
 }
 
@@ -28,8 +32,8 @@ test('sanitize() sends correct request to /sanitize endpoint', async (t) => {
   let capturedUrl: string | undefined;
   let capturedBody: unknown;
 
-  setMockFetch(t, async (url: string | URL | Request, init?: RequestInit) => {
-    capturedUrl = typeof url === 'string' ? url : url instanceof URL ? url.toString() : url.url;
+  setMockFetch(t, async (url, init) => {
+    capturedUrl = typeof url === 'string' ? url : 'href' in url ? url.href : url.url;
     capturedBody = init?.body ? JSON.parse(String(init.body)) : undefined;
 
     return new Response(JSON.stringify({ ok: true, data: { posts: [] } }), {
